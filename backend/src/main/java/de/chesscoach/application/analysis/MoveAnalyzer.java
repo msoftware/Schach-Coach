@@ -234,7 +234,7 @@ public class MoveAnalyzer {
                 .filter(e -> bestScore.centipawnsClamped(3000) - e.score().centipawnsClamped(3000) <= 60)
                 .sorted(Comparator.comparingInt((Evaluated e) -> e.score().comparable()).reversed())
                 .limit(3)
-                .map(e -> e.move().san() + " (" + e.score().display() + ")")
+                .map(e -> de.chesscoach.coaching.GermanText.moveWithNotation(lines.get(e.move().uci()).ply(0)))
                 .toList();
         int minDepth = deep.values().stream().filter(e -> !e.terminal()).mapToInt(Evaluated::depth).min().orElse(0);
         MoveExplanation explanation = explanationBuilder.build(new ExplanationBuilder.Input(playedContext, playedFindings,

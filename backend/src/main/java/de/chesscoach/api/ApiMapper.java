@@ -147,13 +147,13 @@ public class ApiMapper {
         if (c.played()) {
             comparison = "Dein gespielter Zug.";
         } else if (c.deltaToPlayed() == null) {
-            comparison = "Vergleich mit Mattbewertung: " + c.score().display() + " gegenüber " + a.playedMove().score().display() + ".";
+            comparison = c.score().comparable() > a.playedMove().score().comparable() ? "Besser als dein Zug." : "Schlechter als dein Zug.";
+        } else if (Math.abs(c.deltaToPlayed()) < 25) {
+            comparison = "Etwa gleich gut wie dein Zug.";
         } else if (c.deltaToPlayed() > 0) {
-            comparison = "Um " + c.deltaToPlayed() + " Centipawns besser als dein Zug.";
-        } else if (c.deltaToPlayed() < 0) {
-            comparison = "Um " + (-c.deltaToPlayed()) + " Centipawns schlechter als dein Zug.";
+            comparison = "Besser als dein Zug (um " + de.chesscoach.coaching.GermanText.pawnsWords(c.deltaToPlayed()) + ").";
         } else {
-            comparison = "Gleich bewertet wie dein Zug.";
+            comparison = "Schlechter als dein Zug (um " + de.chesscoach.coaching.GermanText.pawnsWords(c.deltaToPlayed()) + ").";
         }
         return new AnalysisResponse.CandidateDto(c.variationId(), c.uci(), c.san(), ScoreDto.of(c.score()), c.depth(), c.nodes(),
                 c.line().stream().map(v -> new AnalysisResponse.VariationMoveDto(v.uci(), v.san(), v.numbered(), v.fenAfter())).toList(),

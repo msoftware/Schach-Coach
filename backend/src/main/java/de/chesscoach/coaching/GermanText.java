@@ -80,18 +80,190 @@ public final class GermanText {
         return text == null || text.isEmpty() ? text : Character.toUpperCase(text.charAt(0)) + text.substring(1);
     }
 
-    /** Material in Bauerneinheiten in Worten. */
+    /** Material in Bauerneinheiten in einfachen Worten. */
     public static String material(int pawnUnits) {
         int units = Math.abs(pawnUnits);
         return switch (units) {
-            case 0 -> "kein Material";
+            case 0 -> "nichts";
             case 1 -> "einen Bauern";
-            case 2 -> "Material im Wert von zwei Bauerneinheiten";
-            case 3 -> "Material im Wert einer Leichtfigur (3 Bauerneinheiten)";
-            case 5 -> "Material im Wert eines Turms (5 Bauerneinheiten)";
-            case 9 -> "Material im Wert einer Dame (9 Bauerneinheiten)";
-            default -> "Material im Wert von " + units + " Bauerneinheiten";
+            case 2 -> "so viel wie zwei Bauern";
+            case 3 -> "so viel wie eine Figur (Springer oder Läufer)";
+            case 5 -> "so viel wie einen Turm";
+            case 9 -> "so viel wie eine Dame";
+            default -> "so viel wie " + units + " Bauern";
         };
+    }
+
+    // ------------------------------------------------------------------
+    // Einfache Sprache für Anfänger
+    // ------------------------------------------------------------------
+
+    private static final java.util.Map<de.chesscoach.domain.position.PieceKind, String[]> ARTICLES = java.util.Map.of(
+            de.chesscoach.domain.position.PieceKind.PAWN, new String[]{"einen Bauern", "Bauern"},
+            de.chesscoach.domain.position.PieceKind.KNIGHT, new String[]{"einen Springer", "Springer"},
+            de.chesscoach.domain.position.PieceKind.BISHOP, new String[]{"einen Läufer", "Läufer"},
+            de.chesscoach.domain.position.PieceKind.ROOK, new String[]{"einen Turm", "Türme"},
+            de.chesscoach.domain.position.PieceKind.QUEEN, new String[]{"die Dame", "Damen"},
+            de.chesscoach.domain.position.PieceKind.KING, new String[]{"den König", "Könige"});
+
+    private static final String[] NUMBERS = {"null", "einen", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht"};
+
+    /** Zug in Worten, z. B. "Springer von f3 schlägt Bauer auf e5" oder "Kurze Rochade". */
+    public static String moveWords(LinePly ply) {
+        Piece moved = ply.moved();
+        if (moved == null) {
+            return ply.move().san();
+        }
+        int from = ply.move().from();
+        int to = ply.move().to();
+        String text;
+        if (moved.kind() == de.chesscoach.domain.position.PieceKind.KING
+                && Math.abs(Squares.file(from) - Squares.file(to)) == 2) {
+            text = Squares.file(to) == 6 ? "kurze Rochade" : "lange Rochade";
+        } else if (ply.captured() != null) {
+            text = moved.kind().germanName() + " von " + Squares.name(from) + " schlägt " + ply.captured().kind().germanName()
+                    + " auf " + Squares.name(to);
+        } else {
+            text = moved.kind().germanName() + " von " + Squares.name(from) + " nach " + Squares.name(to);
+        }
+        if (ply.move().promotion() != null) {
+            text += " und wird zur " + (ply.move().promotion() == de.chesscoach.domain.position.PieceKind.QUEEN ? "Dame"
+                    : ply.move().promotion().germanName());
+        }
+        String san = ply.move().san();
+        if (san.endsWith("#")) {
+            text += " – Schachmatt";
+        } else if (san.endsWith("+")) {
+            text += " mit Schach";
+        }
+        return capitalize(text);
+    }
+
+    /** Zug in Worten für einen legalen Zug in der angegebenen Stellung, mit Kurznotation in Klammern. */
+    public static String moveWithNotation(Position before, de.chesscoach.domain.position.MoveInfo move) {
+        LinePly ply = EngineLine.of("text", before, List.of(move), false).ply(0);
+        return moveWords(ply) + " (" + move.san() + ")";
+    }
+
+    /** Zug in Worten mit Kurznotation in Klammern, z. B. "Springer von f3 nach e5 (3.Nxe5)". */
+    public static String moveWithNotation(LinePly ply) {
+        return moveWords(ply) + " (" + ply.numberedSan() + ")";
+    }
+
+    /** Wer zieht – aus Sicht des Benutzers. */
+    public static String who(LinePly ply, de.chesscoach.domain.position.Color user) {
+        return ply.mover() == user ? "du" : "der Gegner";
+    }
+
+    /**
+     * Fortsetzung in einfachen Worten, z. B. "der Gegner: Springer von c6 schlägt Springer auf e5 → du: Springer von b1
+     * nach c3". Höchstens {@code count} Halbzüge ab {@code from}.
+     */
+    public static String lineWords(EngineLine line, int from, int count, de.chesscoach.domain.position.Color user) {
+        List<String> parts = new java.util.ArrayList<>();
+        int end = Math.min(line.size(), from + count);
+        for (int i = from; i < end; i++) {
+            LinePly ply = line.ply(i);
+            parts.add((ply.mover() == user ? "du: " : "Gegner: ") + moveWords(ply));
+        }
+        return String.join(" → ", parts);
+    }
+
+    /** "einen Springer", "zwei Bauern", "einen Springer und einen Bauern". */
+    public static String pieces(List<de.chesscoach.domain.position.PieceKind> kinds) {
+        if (kinds.isEmpty()) {
+            return "nichts";
+        }
+        java.util.Map<de.chesscoach.domain.position.PieceKind, Integer> counts = new java.util.EnumMap<>(de.chesscoach.domain.position.PieceKind.class);
+        kinds.forEach(k -> counts.merge(k, 1, Integer::sum));
+        List<String> parts = new java.util.ArrayList<>();
+        // Wertvollste Figuren zuerst nennen.
+        List<de.chesscoach.domain.position.PieceKind> order = new java.util.ArrayList<>(counts.keySet());
+        order.sort((a, b) -> Integer.compare(b.value(), a.value()));
+        for (var kind : order) {
+            int n = counts.get(kind);
+            parts.add(n == 1 ? ARTICLES.get(kind)[0] : (n < NUMBERS.length ? NUMBERS[n] : String.valueOf(n)) + " " + ARTICLES.get(kind)[1]);
+        }
+        return join(parts);
+    }
+
+    /**
+     * Beschreibt den Materialtausch einer Variante bis Halbzug {@code plies}, z. B. "Du verlierst einen Springer und
+     * bekommst dafür nur einen Bauern." Leer, wenn nichts geschlagen wird.
+     */
+    public static String tradeWords(EngineLine line, de.chesscoach.domain.position.Color user, int plies) {
+        List<de.chesscoach.domain.position.PieceKind> lost = new java.util.ArrayList<>();
+        List<de.chesscoach.domain.position.PieceKind> won = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.min(plies, line.size()); i++) {
+            LinePly ply = line.ply(i);
+            if (ply.captured() == null) {
+                continue;
+            }
+            (ply.mover() == user ? won : lost).add(ply.captured().kind());
+        }
+        if (lost.isEmpty() && won.isEmpty()) {
+            return "";
+        }
+        int lostValue = lost.stream().mapToInt(de.chesscoach.domain.position.PieceKind::value).sum();
+        int wonValue = won.stream().mapToInt(de.chesscoach.domain.position.PieceKind::value).sum();
+        if (won.isEmpty()) {
+            return "Du verlierst " + pieces(lost) + ", ohne etwas dafür zu bekommen.";
+        }
+        if (lost.isEmpty()) {
+            return "Du gewinnst " + pieces(won) + ", ohne etwas dafür abzugeben.";
+        }
+        if (lostValue > wonValue) {
+            return "Du gibst " + pieces(lost) + " ab und bekommst dafür nur " + pieces(won) + ".";
+        }
+        if (wonValue > lostValue) {
+            return "Du gibst " + pieces(lost) + " ab und bekommst dafür " + pieces(won) + " – das lohnt sich für dich.";
+        }
+        return "Beide Seiten tauschen gleichwertig: Du gibst " + pieces(lost) + " und bekommst " + pieces(won) + ".";
+    }
+
+    /** Bewertung in Worten aus Sicht des Benutzers, z. B. "du stehst klar besser". */
+    public static String evaluationWords(de.chesscoach.domain.analysis.Score score) {
+        if (score == null) {
+            return "unklar";
+        }
+        if (score.isMate()) {
+            if (score.value() > 0) {
+                return "du kannst in " + moves(score.value()) + " mattsetzen";
+            }
+            return score.value() == 0 ? "du bist matt" : "der Gegner kann dich in " + moves(-score.value()) + " mattsetzen";
+        }
+        int cp = score.value();
+        int abs = Math.abs(cp);
+        String side = cp > 0 ? "du" : "der Gegner";
+        if (abs < 50) {
+            return "die Stellung ist ausgeglichen";
+        }
+        if (abs < 120) {
+            return side + (cp > 0 ? " stehst" : " steht") + " etwas besser";
+        }
+        if (abs < 250) {
+            return side + (cp > 0 ? " stehst" : " steht") + " klar besser";
+        }
+        if (abs < 600) {
+            return side + (cp > 0 ? " stehst" : " steht") + " deutlich besser – etwa so, als hätte "
+                    + (cp > 0 ? "du" : "er") + " eine Figur mehr";
+        }
+        return side + (cp > 0 ? " stehst" : " steht") + " auf Gewinn";
+    }
+
+    /** Centipawns als ungefährer Bauernwert, z. B. 250 → "etwa 2½ Bauern". */
+    public static String pawnsWords(int centipawns) {
+        int halves = Math.round(Math.abs(centipawns) / 50f);
+        if (halves <= 0) {
+            return "fast nichts";
+        }
+        if (halves == 1) {
+            return "etwa einen halben Bauern";
+        }
+        int whole = halves / 2;
+        boolean half = halves % 2 == 1;
+        String number = whole + (half ? "½" : "");
+        return "etwa " + (whole == 1 && !half ? "einen Bauern" : number + " Bauern");
     }
 
     /** "1 Zug" bzw. "3 Zügen" (Dativ Plural) */

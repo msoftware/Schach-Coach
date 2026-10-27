@@ -2,6 +2,7 @@ package de.chesscoach.coaching.tactical;
 
 import de.chesscoach.coaching.AbstractRule;
 import de.chesscoach.coaching.FindingBuilder;
+import de.chesscoach.coaching.GermanText;
 import de.chesscoach.coaching.LinePly;
 import de.chesscoach.coaching.PositionContext;
 import de.chesscoach.coaching.TacticalRule;
@@ -42,13 +43,13 @@ public class DoubleAttackRule extends AbstractRule implements TacticalRule {
             FindingBuilder b = FindingBuilder.of(this).positive()
                     .severity(confirmed ? Severity.HIGH : Severity.MEDIUM)
                     .pieces(c.after(), targets);
-            String text = "Nach " + c.line().ply(0).numberedSan() + " bedrohst du gleichzeitig "
-                    + MultiTargetDetector.describeTargets(c.after(), targets) + ".";
+            String text = "Mit diesem Zug bedrohst du gleichzeitig " + MultiTargetDetector.describeTargets(c.after(), targets)
+                    + " (Doppelangriff). Der Gegner kann nicht beides auf einmal schützen.";
             if (confirmed) {
-                b.verified().explanation(text + " Laut Engine-Variante gewinnt das Material: " + c.line().numbered(0, 3) + ".")
+                b.verified().explanation(text + " Danach gewinnst du Material: " + GermanText.lineWords(c.line(), 1, 2, c.user()) + ".")
                         .lineEvidence(c.line(), 3, null, null, "Doppelangriff gewinnt Material", Confidence.HIGH);
             } else {
-                b.heuristic().explanation(text + " Der Gegner kann voraussichtlich nicht beide Drohungen gleichzeitig parieren.");
+                b.heuristic().explanation(text);
             }
             findings.add(b.build());
         });
@@ -60,9 +61,9 @@ public class DoubleAttackRule extends AbstractRule implements TacticalRule {
                         .title("Gegnerischer Doppelangriff")
                         .severity(confirmed ? Severity.HIGH : Severity.MEDIUM)
                         .pieces(reply.after(), targets)
-                        .explanation("Dein Zug erlaubt den Doppelangriff " + reply.numberedSan() + ", der "
-                                + MultiTargetDetector.describeTargets(reply.after(), targets) + " bedroht."
-                                + (confirmed ? " In der Engine-Variante geht dadurch Material verloren: " + c.line().numbered(0, 4) + "." : ""))
+                        .explanation("Achtung: Nach deinem Zug kann der Gegner " + GermanText.moveWithNotation(reply) + " spielen und damit "
+                                + MultiTargetDetector.describeTargets(reply.after(), targets) + " gleichzeitig bedrohen."
+                                + (confirmed ? " Du kannst nicht beides retten und verlierst Material." : ""))
                         .lineEvidence(c.line(), confirmed ? 4 : 2, null, null, "Gegnerischer Doppelangriff",
                                 confirmed ? Confidence.HIGH : Confidence.MEDIUM)
                         .build());

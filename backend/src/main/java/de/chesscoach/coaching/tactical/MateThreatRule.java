@@ -40,7 +40,7 @@ public class MateThreatRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this).positive().verified().severity(Severity.CRITICAL)
                     .title("Schachmatt")
                     .square(c.after().kingSquare(c.opponent()))
-                    .explanation(c.move().san() + " setzt den gegnerischen König matt.")
+                    .explanation("Schachmatt! Mit " + GermanText.moveWithNotation(c.line().ply(0)) + " kann der gegnerische König nicht mehr entkommen.")
                     .build());
             return findings;
         }
@@ -51,16 +51,21 @@ public class MateThreatRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this).positive().verified().severity(Severity.CRITICAL)
                     .title("Erzwungenes Matt")
                     .square(c.after().kingSquare(c.opponent()))
-                    .explanation("Laut Engine erzwingt " + c.move().san() + " Matt in " + GermanText.moves(after.get().value())
-                            + (reached ? ": " + line.numbered(0, line.size()) + "." : ". Die angezeigte Variante ist die berechnete Hauptvariante."))
+                    .explanation("Stark: Laut Computer kannst du den Gegner nach diesem Zug in " + GermanText.moves(after.get().value())
+                            + " mattsetzen, egal was er tut."
+                            + (reached ? " So geht es: " + GermanText.lineWords(line, 0, 5, c.user()) + "." : ""))
                     .lineEvidence(line, line.size(), null, null, "Matt", Confidence.HIGH)
                     .engineSource()
                     .build());
         } else {
-            Optional<MoveInfo> threat = TacticsToolkit.mateThreat(c.after(), c.user(), c.oracle());
+            // Nur neue Drohungen loben: War das Matt schon vor dem Zug möglich, hat der Zug nichts dazu beigetragen.
+            boolean mateExistedBefore = TacticsToolkit.mateInOne(c.before(), c.oracle()).isPresent();
+            Optional<MoveInfo> threat = mateExistedBefore ? Optional.empty()
+                    : TacticsToolkit.mateThreat(c.after(), c.user(), c.oracle());
             threat.ifPresent(mate -> findings.add(FindingBuilder.of(this).positive().verified().severity(Severity.HIGH)
                     .square(mate.to()).square(c.after().kingSquare(c.opponent()))
-                    .explanation("Dein Zug droht Matt mit " + mate.san() + ". Der Gegner muss diese Drohung sofort abwehren.")
+                    .explanation("Dein Zug droht Matt: Wenn der Gegner nicht aufpasst, spielst du als Nächstes "
+                            + GermanText.moveWithNotation(c.after().withSideToMove(c.user()), mate) + ". Er muss das jetzt verhindern.")
                     .evidence(new de.chesscoach.domain.coaching.Evidence(c.after().toFen(), c.move().san(),
                             List.of(mate.san()), null, null, "Mattdrohung", de.chesscoach.domain.coaching.Certainty.VERIFIED,
                             Confidence.HIGH))
@@ -72,8 +77,9 @@ public class MateThreatRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this).negative().verified().severity(Severity.CRITICAL)
                     .title("Matt verpasst")
                     .square(best.ply(0).move().to())
-                    .explanation("Hier gab es ein erzwungenes Matt in " + GermanText.moves(c.bestScore().get().value()) + ": "
-                            + best.numbered(0, best.size()) + ". Mit deinem Zug ist das Matt laut Engine nicht mehr erzwingbar.")
+                    .explanation("Hier hättest du den Gegner in " + GermanText.moves(c.bestScore().get().value()) + " mattsetzen können: "
+                            + GermanText.lineWords(best, 0, 5, c.user()) + " (" + best.numbered(0, best.size()) + "). "
+                            + "Nach deinem Zug geht das nicht mehr.")
                     .lineEvidence(best, best.size(), null, null, "verpasstes Matt", Confidence.HIGH)
                     .engineSource()
                     .build());

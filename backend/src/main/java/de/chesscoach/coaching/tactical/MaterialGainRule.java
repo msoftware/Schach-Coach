@@ -46,10 +46,10 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
                 findings.add(FindingBuilder.of(this)
                         .positive().verified()
                         .severity(gain >= 3 ? Severity.HIGH : Severity.MEDIUM)
-                        .explanation("Mit " + line.ply(0).numberedSan() + " gewinnst du laut berechneter Variante "
-                                + GermanText.material(gain) + ": " + line.numbered(0, Math.max(end, 1))
-                                + ". Die Materialbilanz ändert sich von " + GermanText.balance(before) + " auf "
-                                + GermanText.balance(settled) + ".")
+                        .explanation("Gut gesehen: Mit diesem Zug gewinnst du " + GermanText.material(gain) + ". "
+                                + GermanText.tradeWords(line, c.user(), Math.max(end, 1))
+                                + " So rechnet der Computer weiter: " + GermanText.lineWords(line, 0, Math.min(Math.max(end, 1), 4), c.user())
+                                + " (" + line.numbered(0, Math.max(end, 1)) + ").")
                         .square(c.move().to())
                         .lineEvidence(line, Math.max(end, 1), before, settled, "Materialgewinn", Confidence.HIGH)
                         .build());
@@ -59,9 +59,9 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
             if (see >= 100) {
                 findings.add(FindingBuilder.of(this)
                         .positive().heuristic().severity(Severity.LOW)
-                        .explanation("Du schlägst " + GermanText.opponentPieceOn(c.before(), c.move().to())
-                                + "; nach statischer Abtauschrechnung bleibt dir ein Materialplus. "
-                                + "Eine Engine-Variante zur Bestätigung liegt nicht vor.")
+                        .explanation("Du schlägst " + GermanText.opponentPieceAcc(c.before(), c.move().to())
+                                + ". Nach einfachem Durchzählen der Figuren, die auf dieses Feld schlagen können, behältst du "
+                                + "danach mehr Material. Der Computer hat das hier nicht nachgerechnet.")
                         .piece(c.before(), c.move().to())
                         .build());
             }
@@ -77,9 +77,9 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
                         .negative().verified()
                         .title("Materialgewinn verpasst")
                         .severity(bestGain >= 3 ? Severity.HIGH : Severity.MEDIUM)
-                        .explanation("Mit " + best.ply(0).numberedSan() + " hättest du laut Engine-Variante "
-                                + GermanText.material(bestGain) + " gewinnen können: " + best.numbered(0, Math.max(end, 1))
-                                + ". Dein Zug erreicht dagegen nur eine Bilanz von " + GermanText.balance(before + gain) + ".")
+                        .explanation("Hier war mehr drin: Mit " + GermanText.moveWithNotation(best.ply(0)) + " hättest du "
+                                + GermanText.material(bestGain) + " gewinnen können. " + GermanText.tradeWords(best, c.user(), Math.max(end, 1))
+                                + " So hätte es weitergehen können: " + GermanText.lineWords(best, 0, Math.min(Math.max(end, 1), 4), c.user()) + ".")
                         .square(best.ply(0).move().to())
                         .lineEvidence(best, Math.max(end, 1), before, bestSettled, "verpasster Materialgewinn", Confidence.HIGH)
                         .build());

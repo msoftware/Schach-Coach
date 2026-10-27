@@ -43,7 +43,8 @@ public class MateDefenseRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this).negative().verified().severity(Severity.CRITICAL)
                     .title("Matt in einem Zug übersehen")
                     .square(mateNow.get().to()).square(c.after().kingSquare(c.user()))
-                    .explanation("Nach deinem Zug kann der Gegner mit " + mateNow.get().san() + " sofort matt setzen.")
+                    .explanation("Gefahr! Nach deinem Zug kann der Gegner sofort mattsetzen: "
+                            + GermanText.moveWithNotation(c.after(), mateNow.get()) + ". Prüfe vor jedem Zug, ob dein König sicher ist.")
                     .evidence(new Evidence(c.after().toFen(), c.move().san(), List.of(mateNow.get().san()), null, null,
                             "Matt", Certainty.VERIFIED, Confidence.HIGH))
                     .build());
@@ -55,9 +56,9 @@ public class MateDefenseRule extends AbstractRule implements TacticalRule {
                 findings.add(FindingBuilder.of(this).negative().verified().severity(Severity.CRITICAL)
                         .title("Erzwungenes Matt zugelassen")
                         .square(c.after().kingSquare(c.user()))
-                        .explanation("Laut Engine kann der Gegner nach deinem Zug in " + GermanText.moves(Math.abs(after.get().value()))
-                                + " matt setzen: " + line.numbered(0, line.size())
-                                + ". Mit dem besten Zug wäre das vermeidbar gewesen.")
+                        .explanation("Gefahr! Laut Computer kann der Gegner dich nach diesem Zug in " + GermanText.moves(Math.abs(after.get().value()))
+                                + " mattsetzen, egal was du tust: " + GermanText.lineWords(line, 1, 5, c.user())
+                                + ". Mit dem besten Zug wäre das nicht passiert.")
                         .lineEvidence(line, line.size(), null, null, "Matt gegen dich", Confidence.HIGH)
                         .engineSource()
                         .build());
@@ -69,8 +70,9 @@ public class MateDefenseRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this).positive().verified().severity(Severity.HIGH)
                     .title("Mattdrohung abgewehrt")
                     .square(threatBefore.get().to())
-                    .explanation("Der Gegner drohte " + threatBefore.get().san() + " mit Matt. Dein Zug "
-                            + c.move().san() + " verhindert diese Drohung.")
+                    .explanation("Gut aufgepasst: Der Gegner drohte Matt mit "
+                            + GermanText.moveWithNotation(c.before().withSideToMove(c.opponent()), threatBefore.get())
+                            + ". Dein Zug verhindert das.")
                     .build());
         }
         return findings;

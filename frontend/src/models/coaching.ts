@@ -70,8 +70,7 @@ export interface LearningStats {
 }
 
 export function sourceLabel(source: string): string {
-  if (source === 'ENGINE') return 'Engine';
-  if (source.startsWith('TACT')) return `Taktikregel ${source}`;
-  if (source.startsWith('STRAT')) return `Strategieregel ${source}`;
+  if (source === 'ENGINE') return 'Computer';
+  if (source.startsWith('TACT') || source.startsWith('STRAT')) return `Regel ${source}`;
   return source;
 }

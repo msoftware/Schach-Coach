@@ -92,9 +92,9 @@ public class PinRule extends AbstractRule implements TacticalRule {
         if (pin.absolute()) {
             return attacker + " fesselt " + front + " an den König auf "
                     + de.chesscoach.domain.position.Squares.name(pin.back())
-                    + ". Die gefesselte Figur darf die Linie nicht verlassen, weil sonst der König im Schach stünde.";
+                    + ". Diese Figur ist gefesselt: Sie darf nicht wegziehen, weil sonst der König im Schach stünde.";
         }
         return attacker + " fesselt " + front + " an " + GermanText.withArticleAcc(p, pin.back())
-                + ". Zieht die vordere Figur weg, geht die wertvollere Figur dahinter verloren.";
+                + ". Zieht die vordere Figur weg, kann die wertvollere Figur dahinter geschlagen werden.";
     }
 }

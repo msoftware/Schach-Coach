@@ -29,17 +29,16 @@ function icon(f: CoachingFinding) {
           <q-item-label class="text-weight-medium">
             {{ f.title }}
             <q-badge outline color="grey-8" class="q-ml-xs">{{ f.ruleId }}</q-badge>
-            <q-badge v-if="f.certainty === 'HEURISTIC'" outline color="blue-grey-6" class="q-ml-xs">Heuristik</q-badge>
-            <q-badge v-else outline color="teal-8" class="q-ml-xs">belegt</q-badge>
-            <q-badge v-if="f.source === 'ENGINE'" outline color="indigo-7" class="q-ml-xs">Engine</q-badge>
+            <q-badge v-if="f.certainty === 'HEURISTIC'" outline color="blue-grey-6" class="q-ml-xs">Faustregel</q-badge>
+            <q-badge v-else outline color="teal-8" class="q-ml-xs">nachgerechnet</q-badge>
+            <q-badge v-if="f.source === 'ENGINE'" outline color="indigo-7" class="q-ml-xs">Computer</q-badge>
           </q-item-label>
           <q-item-label class="text-body2">{{ f.explanation }}</q-item-label>
           <q-item-label v-if="f.overriddenByTactics" caption class="text-orange-10">
-            Durch die nachgewiesene taktische Folge überstimmt.
+            Gilt hier nicht: Die taktische Folge des Zuges ist wichtiger.
           </q-item-label>
           <q-item-label v-if="f.evidence?.line?.length" caption>
-            Beweiskette: {{ f.evidence.triggerMove }} {{ f.evidence.line.join(' ') }}
-            <template v-if="f.evidence.materialBefore != null"> · Material {{ f.evidence.materialBefore }} → {{ f.evidence.materialAfter }}</template>
+            Berechnete Züge: {{ f.evidence.triggerMove }} {{ f.evidence.line.join(' ') }}
           </q-item-label>
         </q-item-section>
       </q-item>

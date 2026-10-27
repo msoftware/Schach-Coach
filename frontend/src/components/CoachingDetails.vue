@@ -12,6 +12,11 @@ const tab = ref('explanation');
 const tactical = computed(() => (props.analysis.findings ?? []).filter((f) => f.category === 'TACTICAL'));
 const strategic = computed(() => (props.analysis.findings ?? []).filter((f) => f.category === 'STRATEGIC' && f.ruleId !== 'STRAT-011'));
 const userPlans = computed(() => (props.analysis.strategicPlans ?? []).filter((p) => p.side === 'USER'));
+const materialText = computed(() => {
+  const d = props.analysis.material?.delta ?? 0;
+  if (d === 0) return 'Durch deinen Zug ändert sich am Material nichts.';
+  return d > 0 ? `Du gewinnst Material im Wert von etwa ${d} Bauern.` : `Du verlierst Material im Wert von etwa ${-d} Bauern.`;
+});
 const opponentPlans = computed(() => (props.analysis.strategicPlans ?? []).filter((p) => p.side === 'OPPONENT'));
 </script>
 
@@ -19,10 +24,10 @@ const opponentPlans = computed(() => (props.analysis.strategicPlans ?? []).filte
   <q-card flat bordered class="coaching-details" data-testid="coaching-details">
     <q-tabs v-model="tab" dense align="left" class="text-primary" narrow-indicator inline-label outside-arrows mobile-arrows>
       <q-tab name="explanation" icon="school" label="Erklärung" no-caps />
-      <q-tab name="candidates" icon="list" label="Kandidaten" no-caps data-testid="tab-candidates" />
-      <q-tab name="findings" icon="search" label="Befunde" no-caps />
+      <q-tab name="candidates" icon="list" label="Andere Züge" no-caps data-testid="tab-candidates" />
+      <q-tab name="findings" icon="search" label="Erkenntnisse" no-caps />
       <q-tab name="plans" icon="flag" label="Pläne" no-caps />
-      <q-tab name="engine" icon="memory" label="Engine" no-caps />
+      <q-tab name="engine" icon="memory" label="Zahlen" no-caps />
     </q-tabs>
     <q-separator />
     <q-tab-panels v-model="tab" animated keep-alive>
@@ -37,41 +42,40 @@ const opponentPlans = computed(() => (props.analysis.strategicPlans ?? []).filte
           </ul>
         </div>
         <q-card v-if="analysis.tip" flat class="bg-amber-1 q-pa-sm">
-          <div class="text-subtitle2"><q-icon name="tips_and_updates" /> Merksatz</div>
+          <div class="text-subtitle2"><q-icon name="tips_and_updates" /> Zum Merken</div>
           <div class="text-body2">{{ analysis.tip.learningPrinciple }}</div>
         </q-card>
       </q-tab-panel>
 
       <q-tab-panel name="candidates">
-        <CandidateMoves :candidates="analysis.candidates ?? []" :selected-uci="selectedCandidate" @select="emit('candidate', $event)" />
+        <CandidateMoves :candidates="analysis.candidates ?? []" :selected-uci="selectedCandidate" :start-fen="analysis.fenBefore" @select="emit('candidate', $event)" />
       </q-tab-panel>
 
       <q-tab-panel name="findings">
-        <StrategicFindings :findings="tactical" title="Taktische Motive (Ebene 1)" empty-text="Keine taktischen Motive erkannt."
+        <StrategicFindings :findings="tactical" title="Taktik – direkte Drohungen und Schlagzüge" empty-text="Keine taktischen Besonderheiten."
                            @highlight="emit('highlight', $event)" />
         <div class="q-mt-md" />
-        <StrategicFindings :findings="strategic" title="Strategische Bewertung (Ebene 2, nach Lasker)"
-                           empty-text="Keine strategischen Auffälligkeiten." @highlight="emit('highlight', $event)" />
+        <StrategicFindings :findings="strategic" title="Strategie – langfristige Vor- und Nachteile (nach Lasker)"
+                           empty-text="Keine strategischen Besonderheiten." @highlight="emit('highlight', $event)" />
         <div v-if="analysis.material" class="q-mt-md text-body2">
-          <strong>Materialveränderung:</strong> {{ analysis.material.before }} → {{ analysis.material.after }}
-          (Bauerneinheiten aus deiner Sicht, am ruhigen Punkt der Hauptvariante)
+          <strong>Material:</strong> {{ materialText }}
         </div>
       </q-tab-panel>
 
       <q-tab-panel name="plans">
-        <div class="text-subtitle2">Deine Pläne</div>
+        <div class="text-subtitle2">Was du als Nächstes vorhaben kannst</div>
         <ul class="q-pl-md">
           <li v-for="(p, i) in userPlans" :key="i" class="text-body2">
             <strong>{{ p.title }}</strong> – {{ p.explanation }}
-            <span class="sources">[{{ p.source === 'ENGINE' ? 'Engine' : 'Regel STRAT-011' }}: {{ p.basis }}]</span>
+            <span class="sources">[{{ p.source === 'ENGINE' ? 'Computer' : 'Regel STRAT-011' }}]</span>
           </li>
           <li v-if="userPlans.length === 0" class="text-grey-7">Kein eindeutiger Plan aus den Stellungsmerkmalen.</li>
         </ul>
-        <div class="text-subtitle2">Pläne des Gegners</div>
+        <div class="text-subtitle2">Was der Gegner vorhaben könnte</div>
         <ul class="q-pl-md">
           <li v-for="(p, i) in opponentPlans" :key="i" class="text-body2">
             <strong>{{ p.title }}</strong> – {{ p.explanation }}
-            <span class="sources">[{{ p.source === 'ENGINE' ? 'Engine' : 'Regel STRAT-011' }}: {{ p.basis }}]</span>
+            <span class="sources">[{{ p.source === 'ENGINE' ? 'Computer' : 'Regel STRAT-011' }}]</span>
           </li>
           <li v-if="opponentPlans.length === 0" class="text-grey-7">Kein eindeutiger Plan aus den Stellungsmerkmalen.</li>
         </ul>

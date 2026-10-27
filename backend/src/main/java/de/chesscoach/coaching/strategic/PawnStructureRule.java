@@ -107,6 +107,6 @@ public class PawnStructureRule extends AbstractRule implements StrategicRule {
         if (files.isEmpty()) {
             return "";
         }
-        return " Angriffsrichtung: über die halboffene " + GermanText.join(files.stream().distinct().toList()) + ".";
+        return " Der Gegner kann ihn über die " + GermanText.join(files.stream().distinct().toList()) + " angreifen.";
     }
 }

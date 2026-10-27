@@ -90,8 +90,8 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
                         || p.squaresOf(other, PieceKind.ROOK).stream().anyMatch(r -> Squares.file(r) == f);
                 if (!occupied && !p.squaresOf(side, PieceKind.ROOK).isEmpty()) {
                     plans.add(plan(label, "Offene " + Squares.fileName(file) + "-Linie besetzen",
-                            "Die " + Squares.fileName(file) + "-Linie ist offen und von keinem Turm besetzt. Wer sie zuerst mit einem Turm "
-                                    + "besetzt, kann über sie in das gegnerische Lager eindringen.",
+                            "Auf der " + Squares.fileName(file) + "-Linie stehen keine Bauern mehr. Ein Turm auf dieser Linie kann bis ins "
+                                    + "gegnerische Lager vordringen – wer sie zuerst besetzt, ist im Vorteil.",
                             List.of(Squares.of(file, side.backRank())), "offene " + Squares.fileName(file) + "-Linie"));
                     break;
                 }
@@ -112,7 +112,7 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
         if (worst >= 0 && worstMobility <= 2 && !p.isOpening()) {
             plans.add(plan(label, "Passive Figur verbessern",
                     (you ? "Dein " : "Der gegnerische ") + GermanText.pieceOn(p, worst) + " hat nur " + worstMobility
-                            + " Felder zur Verfügung. Eine Umgruppierung auf ein aktiveres Feld stärkt die Stellung.",
+                            + " Felder, die sie erreichen kann. Suche ihr ein besseres Feld, von dem aus sie mehr bewirkt.",
                     List.of(worst), "geringe Mobilität " + GermanText.pieceOn(p, worst)));
         }
         Set<Integer> passed = ours.passed();
@@ -120,7 +120,8 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
             int most = passed.stream().max((a, b) -> Integer.compare(side.relativeRank(Squares.rank(a)), side.relativeRank(Squares.rank(b)))).get();
             plans.add(plan(label, "Freibauer " + Squares.name(most) + " vorrücken",
                     (you ? "Dein" : "Der gegnerische") + " Freibauer auf " + Squares.name(most)
-                            + " sollte mit Figurenunterstützung vorrücken; der Gegner muss Kräfte zu seiner Blockade abstellen.",
+                            + " hat freie Bahn – kein Bauer kann ihn mehr aufhalten. Schiebe ihn mit Hilfe deiner Figuren nach vorne; "
+                            + "der Gegner muss dann Figuren zum Aufhalten abstellen.",
                     List.of(most), "Freibauer " + Squares.name(most)));
         } else {
             for (boolean queenside : new boolean[]{true, false}) {
@@ -129,7 +130,8 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
                 if (own > their && their >= 0 && own >= 2) {
                     plans.add(plan(label, "Bauernmehrheit am " + (queenside ? "Damenflügel" : "Königsflügel") + " nutzen",
                             (you ? "Du hast" : "Der Gegner hat") + " am " + (queenside ? "Damenflügel" : "Königsflügel") + " " + own
-                                    + " gegen " + their + " Bauern. Durch Vorrücken der Mehrheit kann ein Freibauer entstehen.",
+                                    + " gegen " + their + " Bauern. Wenn du diese Bauern vorschiebst, kann daraus ein Bauer mit freier Bahn "
+                                    + "(Freibauer) entstehen.",
                             List.of(), "Bauernmehrheit " + own + ":" + their));
                     break;
                 }
@@ -148,16 +150,17 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
         if (balance >= 2 && !p.isEndgame()) {
             plans.add(plan(label, "Vorteilhaften Abtausch anstreben",
                     (you ? "Du hast" : "Der Gegner hat") + " " + GermanText.balance(balance)
-                            + " Bauerneinheiten Materialvorteil. Figurentausch (nicht Bauerntausch) vereinfacht die Verwertung.",
+                            + " mehr an Material. Tausche jetzt Figuren (nicht Bauern): Je weniger Figuren auf dem Brett sind, desto leichter "
+                            + "lässt sich ein Materialvorteil in einen Sieg verwandeln.",
                     List.of(), "Materialvorteil " + GermanText.balance(balance)));
         }
         List<StrategicPlan> limited = new ArrayList<>(plans.subList(0, Math.min(MAX_PLANS_PER_SIDE, plans.size())));
         int nextOwnPly = side == c.user() ? 2 : 1;
         if (c.hasEngineLine() && c.line().size() > nextOwnPly) {
             LinePly ply = c.line().ply(nextOwnPly);
-            limited.add(new StrategicPlan(label, "Fortsetzung laut Engine: " + ply.numberedSan(),
-                    "In der berechneten Hauptvariante folgt für " + (you ? "dich" : "den Gegner") + " " + ply.numberedSan()
-                            + ". Dies ist die von der Suche gefundene Fortsetzung, keine erzwungene Zugfolge.",
+            limited.add(new StrategicPlan(label, "Vorschlag des Computers: " + GermanText.moveWords(ply),
+                    "Der Computer würde als Nächstes für " + (you ? "dich" : "den Gegner") + " "
+                            + GermanText.moveWithNotation(ply) + " spielen. Das ist ein Vorschlag, keine erzwungene Zugfolge.",
                     List.of(Squares.name(ply.move().to())), "Engine-Hauptvariante", FindingSource.ENGINE));
         }
         return limited;

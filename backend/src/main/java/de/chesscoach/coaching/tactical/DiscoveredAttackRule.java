@@ -39,8 +39,7 @@ public class DiscoveredAttackRule extends AbstractRule implements TacticalRule {
                     .title(check ? "Abzugsschach" : "Abzugsangriff")
                     .severity(check ? Severity.HIGH : Severity.MEDIUM)
                     .piece(c.after(), attack[0]).piece(c.after(), attack[1]).square(c.move().from())
-                    .explanation("Durch den Zug " + c.move().san() + " öffnet sich die Linie für deine Figur "
-                            + GermanText.pieceOn(c.after(), attack[0]) + ". Diese Figur greift jetzt "
+                    .explanation("Dein Zug macht den Weg frei für " + GermanText.yourPieceAcc(c.after(), attack[0]) + ". Diese Figur greift jetzt "
                             + (check ? "den gegnerischen König an (Abzugsschach)"
                             : GermanText.opponentPieceAcc(c.after(), attack[1]) + " an")
                             + ". Die gezogene Figur kann gleichzeitig eine eigene Drohung aufstellen.")
@@ -54,7 +53,7 @@ public class DiscoveredAttackRule extends AbstractRule implements TacticalRule {
                         .title("Gegnerischer Abzugsangriff")
                         .severity(Severity.MEDIUM)
                         .piece(reply.after(), attack[0]).piece(reply.after(), attack[1])
-                        .explanation("In der Engine-Variante folgt " + reply.numberedSan() + " mit Abzugsangriff: "
+                        .explanation("Achtung: Der Gegner kann " + GermanText.moveWithNotation(reply) + " spielen und damit eine Linie öffnen: "
                                 + GermanText.opponentPieceOn(reply.after(), attack[0]) + " greift danach "
                                 + GermanText.withArticleAcc(reply.after(), attack[1]) + " an.")
                         .build());

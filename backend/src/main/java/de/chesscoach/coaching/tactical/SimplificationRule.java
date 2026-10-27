@@ -70,11 +70,10 @@ public class SimplificationRule extends AbstractRule implements TacticalRule {
         } else {
             b.neutral();
         }
-        b.explanation("Dein Zug leitet die Abwicklung " + line.numbered(0, length) + " ein. Du gibst "
-                + (userLost.isEmpty() ? "nichts" : GermanText.join(userLost)) + " und erhältst "
-                + GermanText.join(opponentLost) + "; die Materialbilanz ändert sich von " + GermanText.balance(before)
-                + " auf " + GermanText.balance(after) + "."
-                + (intoEndgame ? " Danach ist ein Endspiel erreicht, in dem Königsaktivität und Bauernstruktur besonders wichtig werden." : ""));
+        b.explanation("Dein Zug startet einen Abtausch: " + GermanText.lineWords(line, 0, length, c.user()) + ". "
+                + GermanText.tradeWords(line, c.user(), length)
+                + (intoEndgame ? " Danach sind nur noch wenige Figuren auf dem Brett (Endspiel) – jetzt wird der König zu einer "
+                + "wichtigen, aktiven Figur." : ""));
         findings.add(b.build());
         return findings;
     }

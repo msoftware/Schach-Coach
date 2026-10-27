@@ -55,7 +55,7 @@ public class OpenLinesRule extends AbstractRule implements StrategicRule {
                         .title(open ? "Offene Linie besetzt" : "Halboffene Linie besetzt")
                         .square(to)
                         .explanation(piece + " steht jetzt auf der " + (open ? "offenen" : "halboffenen") + " "
-                                + Squares.fileName(toFile) + "-Linie und übt von dort Druck "
+                                + Squares.fileName(toFile) + "-Linie (" + (open ? "keine Bauern darauf" : "keine eigenen Bauern darauf") + ") und übt von dort Druck "
                                 + (open ? "bis in das gegnerische Lager aus." : "auf den gegnerischen Bauern dieser Linie aus."))
                         .build());
             } else if (kind == PieceKind.ROOK && !sameFile && structure.isFileOpen(Squares.file(from))
@@ -86,8 +86,8 @@ public class OpenLinesRule extends AbstractRule implements StrategicRule {
                 findings.add(FindingBuilder.of(this).positive().heuristic().severity(Severity.LOW)
                         .title("Offene Diagonale")
                         .square(to)
-                        .explanation("Dein Läufer auf " + Squares.name(to) + " beherrscht eine lange, offene Diagonale ("
-                                + mobility + " erreichbare Felder).")
+                        .explanation("Dein Läufer auf " + Squares.name(to) + " steht auf einer langen, freien Schräge und kann "
+                                + mobility + " Felder erreichen.")
                         .build());
             }
         }

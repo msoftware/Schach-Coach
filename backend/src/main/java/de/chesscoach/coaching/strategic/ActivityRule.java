@@ -63,8 +63,8 @@ public class ActivityRule extends AbstractRule implements StrategicRule {
             findings.add(FindingBuilder.of(this).negative().heuristic().severity(Severity.LOW)
                     .title("Springer am Rand")
                     .square(c.move().to())
-                    .explanation("Dein Springer steht auf " + Squares.name(c.move().to()) + " am Brettrand und kontrolliert dort nur "
-                            + after + " Felder. Ein zentraler Springer wirkt in mehr Richtungen.")
+                    .explanation("Dein Springer steht auf " + Squares.name(c.move().to()) + " am Rand und erreicht von dort nur "
+                            + after + " Felder. In der Mitte erreicht ein Springer bis zu 8 Felder („Ein Springer am Rand bringt Kummer und Schand“).")
                     .build());
         } else if (after - before >= THRESHOLD) {
             findings.add(FindingBuilder.of(this).positive().heuristic().severity(after - before >= 5 ? Severity.MEDIUM : Severity.LOW)

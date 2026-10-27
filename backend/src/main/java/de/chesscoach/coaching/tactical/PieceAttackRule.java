@@ -56,10 +56,10 @@ public class PieceAttackRule extends AbstractRule implements TacticalRule {
                     .piece(c.after(), to).piece(c.after(), target)
                     .severity(wins ? Severity.MEDIUM : Severity.LOW);
             String text = GermanText.yourPieceOn(c.after(), to) + " greift " + GermanText.opponentPieceAcc(c.after(), target)
-                    + " an. Der Gegner muss darauf reagieren.";
+                    + " an. Der Gegner muss jetzt etwas tun, sonst verliert er diese Figur.";
             if (wins) {
-                b.verified().explanation(text + " In der Engine-Variante wird die Figur anschließend geschlagen: "
-                        + c.line().numbered(0, 3) + ".").lineEvidence(c.line(), 3, null, null, "Angriff führt zu Materialgewinn", Confidence.HIGH);
+                b.verified().explanation(text + " Der Computer zeigt, dass du sie danach tatsächlich schlagen kannst: "
+                        + GermanText.lineWords(c.line(), 1, 2, c.user()) + ".").lineEvidence(c.line(), 3, null, null, "Angriff führt zu Materialgewinn", Confidence.HIGH);
             } else {
                 b.heuristic().explanation(text);
             }
@@ -86,12 +86,13 @@ public class PieceAttackRule extends AbstractRule implements TacticalRule {
                     .piece(c.after(), sq)
                     .squares(c.after().attackersOf(sq, c.opponent()))
                     .severity(gainAfter >= 300 ? Severity.HIGH : Severity.MEDIUM);
-            String text = GermanText.yourPieceOn(c.after(), sq) + " war bereits vor deinem Zug angegriffen und bleibt es auch danach.";
+            String text = GermanText.yourPieceOn(c.after(), sq) + " war schon vor deinem Zug bedroht – und dein Zug hat daran nichts geändert.";
             if (confirmed) {
-                b.verified().explanation(text + " Die Engine nutzt das sofort mit " + reply.get().numberedSan() + ".")
+                b.verified().explanation(text + " Der Gegner kann sie jetzt einfach schlagen: " + GermanText.moveWithNotation(reply.get())
+                        + ". Bevor du einen anderen Zug machst, prüfe immer zuerst, welche deiner Figuren bedroht sind.")
                         .lineEvidence(c.line(), 3, null, null, "Figur geht verloren", Confidence.HIGH);
             } else {
-                b.heuristic().explanation(text + " Nach statischer Abtauschrechnung kann der Gegner sie mit Gewinn schlagen.");
+                b.heuristic().explanation(text + " Der Gegner könnte sie mit Gewinn schlagen.");
             }
             findings.add(b.build());
         }

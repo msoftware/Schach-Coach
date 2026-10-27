@@ -98,14 +98,14 @@ class ExplanationQualityTest {
                         new Score[]{Score.cp(24), Score.cp(-229), Score.cp(23)}, Confidence.HIGH,
                         MoveClassification.BLUNDER, ExplanationType.TACTICAL_BLUNDER,
                         List.of("TACT-002", "TACT-003", "TACT-016"), List.of(),
-                        List.of("3...Nxe5", "Besser war 3.d4", "keine erzwungene Zugfolge"),
+                        List.of("3...Nxe5", "Besser war: Bauer von d2 nach d4 (3.d4)", "keine erzwungene Zugfolge"),
                         List.of("gewinnst du", "Kompensation für Material")),
                 new Case("Entwicklungszug als Bestzug", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                         List.of("g1f3", "d7d5", "d2d4"), null,
                         new Score[]{Score.cp(30), Score.cp(25), Score.cp(25)}, Confidence.HIGH,
                         MoveClassification.BEST, ExplanationType.BEST_MOVE,
                         List.of("STRAT-001"), List.of("TACT-002", "TACT-003"),
-                        List.of("Du hast den besten gefundenen Zug gespielt", "Springer"),
+                        List.of("Du hast den besten Zug gespielt", "Springer"),
                         List.of("Materialverlust", "grober Fehler")),
                 new Case("Gegnerische Gabel zugelassen", "4k3/8/8/8/3n4/8/7P/R3K3 w Q - 0 1",
                         List.of("h2h3", "d4c2", "e1d2", "c2a1"), List.of("a1a4", "d4c6"),
@@ -118,7 +118,7 @@ class ExplanationQualityTest {
                         new Score[]{Score.mate(1), Score.cp(450), Score.mate(1)}, Confidence.HIGH,
                         MoveClassification.MISTAKE, ExplanationType.MISSED_WIN,
                         List.of("TACT-010"), List.of(),
-                        List.of("Matt in 1", "Ra8#"), List.of()),
+                        List.of("in 1 Zug mattsetzen", "Ra8#"), List.of("Dein Zug droht Matt")),
                 new Case("Mattgefahr übersehen", "6k1/8/5q2/8/8/5N2/6PP/7K w - - 0 1",
                         List.of("f3e5", "f6f1"), List.of("h2h3", "f6f3"),
                         new Score[]{Score.cp(-300), Score.mate(-1), Score.cp(-300)}, Confidence.HIGH,
@@ -130,7 +130,7 @@ class ExplanationQualityTest {
                         new Score[]{Score.cp(30), Score.cp(-50), Score.cp(30)}, Confidence.LOW,
                         MoveClassification.INACCURACY, ExplanationType.STRATEGIC_INACCURACY,
                         List.of(), List.of("TACT-002"),
-                        List.of("vorläufige Einordnung", "nicht als endgültig"), List.of("erzwungen in"))
+                        List.of("Einschätzung ist vorläufig", "nicht als endgültig"), List.of("erzwungen in"))
         );
     }
 

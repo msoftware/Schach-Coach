@@ -30,6 +30,9 @@ public class ExplanationBuilder {
 
     public static final String ENGINE = "ENGINE";
 
+    /** Regeln, deren Aussage (Materialgewinn/-verlust) im Abschnitt "Was passiert durch deinen Zug?" steht. */
+    private static final Set<String> MATERIAL_RULES = Set.of("TACT-001", "TACT-002", "TACT-016");
+
     /**
      * @param played          Kontext des gespielten Zuges
      * @param playedFindings  Befunde des gespielten Zuges (Ebene 1 und 2)
@@ -74,12 +77,11 @@ public class ExplanationBuilder {
         sections.add(whyBetter(in, findings));
         sections.add(plans(in));
         String principle = principle(findings, cls, type);
-        sections.add(new ExplanationSection("principle", "Welches Schachprinzip sollte ich mir merken?",
+        sections.add(new ExplanationSection("principle", "Was kannst du dir merken?",
                 List.of(new ExplanationStatement(principle, main.map(f -> List.of(f.ruleId())).orElse(List.of())))));
 
-        String better = in.best().map(b -> "Besser war " + b.line().ply(0).numberedSan() + " ("
-                        + display(b.scoreAfter()) + " statt " + display(c.scoreAfter()) + ").")
-                .orElse("Du hast den besten gefundenen Zug gespielt.");
+        String better = in.best().map(b -> "Besser war: " + GermanText.moveWithNotation(b.line().ply(0)) + ".")
+                .orElse("Du hast den besten Zug gespielt, den der Computer gefunden hat.");
         CoachingTip tip = new CoachingTip(type.german(), sections.get(0).statements().isEmpty() ? headline
                 : sections.get(0).statements().get(0).text(), mainReason, better,
                 sections.get(1).statements().isEmpty() ? "" : sections.get(1).statements().get(0).text(), principle, in.confidence());
@@ -194,42 +196,41 @@ public class ExplanationBuilder {
         List<ExplanationStatement> st = new ArrayList<>();
         MoveClassification cls = in.classification().classification();
         PositionContext c = in.played();
-        String san = c.line().ply(0).numberedSan();
-        st.add(new ExplanationStatement(classificationSentence(cls, san, in.classification()), List.of(ENGINE)));
+        st.add(new ExplanationStatement(classificationSentence(cls, GermanText.moveWithNotation(c.line().ply(0)), in.classification()),
+                List.of(ENGINE)));
         main.ifPresent(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
         findings.stream()
                 .filter(f -> main.map(m -> m != f).orElse(true))
+                .filter(f -> !MATERIAL_RULES.contains(f.ruleId()))
                 .filter(f -> !f.overriddenByTactics() && f.severity().atLeast(Severity.LOW) && f.severity() != Severity.INFO)
                 .limit(2)
                 .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
         findings.stream().filter(CoachingFinding::overriddenByTactics).findFirst().ifPresent(f -> st.add(new ExplanationStatement(
-                "Strategisch spricht zwar etwas für den Zug (" + f.title() + "), doch die nachgewiesene taktische bzw. "
-                        + "rechnerische Widerlegung wiegt schwerer.", List.of(f.ruleId(), ENGINE))));
+                "Auf den ersten Blick spricht etwas für deinen Zug (" + f.title() + "). Der Nachteil, den der Computer "
+                        + "gefunden hat, wiegt aber schwerer.", List.of(f.ruleId(), ENGINE))));
         if (in.confidence() != Confidence.HIGH) {
-            st.add(new ExplanationStatement("Hinweis: Die Zuverlässigkeit dieser Analyse ist " + in.confidence().german()
-                    + (in.confidenceNotes().isEmpty() ? "." : " (" + String.join("; ", in.confidenceNotes()) + ").")
-                    + " Die Bewertung ist nicht als endgültig zu verstehen.", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Hinweis: Der Computer konnte hier nicht tief genug rechnen. Nimm die Bewertung als "
+                    + "Einschätzung, nicht als endgültiges Urteil.", List.of(ENGINE)));
         }
         if (type == ExplanationType.UNCERTAIN_ANALYSIS) {
-            st.add(new ExplanationStatement("Eine verlässliche Einordnung des Zuges ist mit den vorliegenden Daten nicht möglich.",
-                    List.of(ENGINE)));
+            st.add(new ExplanationStatement("Eine sichere Bewertung dieses Zuges ist gerade nicht möglich.", List.of(ENGINE)));
         }
-        return new ExplanationSection("assessment", "Was war an meinem Zug gut oder schlecht?", st);
+        return new ExplanationSection("assessment", "Was war gut, was war schlecht?", st);
     }
 
-    private static String classificationSentence(MoveClassification cls, String san, MistakeClassifier.Result result) {
+    private static String classificationSentence(MoveClassification cls, String move, MistakeClassifier.Result result) {
         String base = switch (cls) {
-            case BEST -> san + " ist der beste oder ein gleichwertig bester Zug.";
-            case EXCELLENT -> san + " ist sehr gut und praktisch gleichwertig mit dem besten Zug.";
-            case GOOD -> san + " ist ein solider Zug mit höchstens geringem Nachteil.";
-            case INACCURACY -> san + " ist ungenau: Ein Teil des möglichen Vorteils geht verloren.";
-            case MISTAKE -> san + " ist ein Fehler: Ein wesentlicher Vorteil geht verloren oder ein Nachteil entsteht.";
-            case BLUNDER -> san + " ist ein grober Fehler mit erheblichem Nachteil.";
-            case FORCED -> san + " war praktisch erzwungen – es gab keine gleichwertige Alternative.";
-            case UNCERTAIN -> "Für " + san + " liegt keine ausreichend zuverlässige Bewertung vor.";
+            case BEST -> "Sehr gut! Mit " + move + " hast du den besten Zug gefunden.";
+            case EXCELLENT -> "Sehr gut! " + move + " ist fast genauso stark wie der beste Zug.";
+            case GOOD -> "Ein ordentlicher Zug: " + move + ". Es gab etwas Besseres, aber der Unterschied ist klein.";
+            case INACCURACY -> "Nicht ganz genau: " + move + " ist kein Fehler, aber es gab einen deutlich besseren Zug.";
+            case MISTAKE -> "Das war ein Fehler: Nach " + move + " stehst du spürbar schlechter als nötig.";
+            case BLUNDER -> "Das war ein grober Fehler: Nach " + move + " verlierst du viel – zum Beispiel eine Figur oder sogar die Partie.";
+            case FORCED -> move + " war praktisch Pflicht – alle anderen Züge wären deutlich schlechter gewesen.";
+            case UNCERTAIN -> "Den Zug " + move + " kann der Computer gerade nicht sicher bewerten.";
         };
         if (result.provisional() && cls != MoveClassification.UNCERTAIN) {
-            base += " (vorläufige Einordnung)";
+            base += " (Achtung: Diese Einschätzung ist vorläufig.)";
         }
         return base;
     }
@@ -238,25 +239,25 @@ public class ExplanationBuilder {
         List<ExplanationStatement> st = new ArrayList<>();
         PositionContext c = in.played();
         if (c.scoreBefore().isPresent() && c.scoreAfter().isPresent()) {
-            st.add(new ExplanationStatement("Die Engine-Bewertung aus deiner Sicht ändert sich von " + c.scoreBefore().get().display()
-                    + " vor dem Zug auf " + c.scoreAfter().get().display() + " danach.", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Vor deinem Zug: " + GermanText.evaluationWords(c.scoreBefore().get())
+                    + ". Nach deinem Zug: " + GermanText.evaluationWords(c.scoreAfter().get()) + ".", List.of(ENGINE)));
         }
         Integer loss = in.classification().lossCentipawns();
-        if (loss != null && loss > 0 && c.differsFromBest()) {
-            st.add(new ExplanationStatement("Gegenüber dem besten Zug beträgt der Verlust etwa " + loss + " Centipawns ("
-                    + String.format(java.util.Locale.GERMANY, "%.0f", in.classification().winProbabilityLoss() * 100)
-                    + " Prozentpunkte Gewinnerwartung).", List.of(ENGINE)));
+        if (loss != null && loss >= 30 && c.differsFromBest()) {
+            st.add(new ExplanationStatement("Im Vergleich zum besten Zug hast du " + GermanText.pawnsWords(loss) + " verschenkt.",
+                    List.of(ENGINE)));
         }
-        findings.stream()
-                .filter(f -> !f.overriddenByTactics() && f.evidence() != null && f.evidence().materialBefore() != null
-                        && f.evidence().materialAfter() != null)
-                .findFirst()
-                .ifPresent(f -> st.add(new ExplanationStatement("Materialbilanz: " + GermanText.balance(f.evidence().materialBefore())
-                        + " → " + GermanText.balance(f.evidence().materialAfter()) + " (" + f.title() + ").", List.of(f.ruleId()))));
+        boolean immediateCapture = c.line().ply(0).isCapture() || c.opponentReply().map(LinePly::isCapture).orElse(false);
+        if (c.hasEngineLine() && immediateCapture) {
+            String trade = GermanText.tradeWords(c.line(), c.user(), c.line().settledIndex(12));
+            if (!trade.isBlank()) {
+                st.add(new ExplanationStatement(trade, List.of(ENGINE)));
+            }
+        }
         if (st.isEmpty()) {
-            st.add(new ExplanationStatement("Ohne Engine-Bewertung kann die Konsequenz nicht quantifiziert werden.", List.of()));
+            st.add(new ExplanationStatement("Ohne Bewertung des Computers lässt sich die Folge nicht genau sagen.", List.of()));
         }
-        return new ExplanationSection("consequence", "Welche konkrete Konsequenz hatte er?", st);
+        return new ExplanationSection("consequence", "Was passiert durch deinen Zug?", st);
     }
 
     private ExplanationSection opponentReply(Input in, List<CoachingFinding> findings) {
@@ -264,19 +265,23 @@ public class ExplanationBuilder {
         PositionContext c = in.played();
         Optional<LinePly> reply = c.opponentReply();
         if (reply.isPresent()) {
-            st.add(new ExplanationStatement("In der berechneten Hauptvariante antwortet der Gegner mit " + reply.get().numberedSan()
-                    + ": " + c.line().numbered(0, Math.min(c.line().size(), 6))
-                    + ". Das ist die von der Suche gefundene Fortsetzung, keine erzwungene Zugfolge.", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Der Gegner kann so antworten: " + GermanText.moveWithNotation(reply.get()) + ".",
+                    List.of(ENGINE)));
+            if (c.line().size() > 2) {
+                st.add(new ExplanationStatement("So könnte es weitergehen: " + GermanText.lineWords(c.line(), 2, 3, c.user())
+                        + ". Das ist eine mögliche Fortsetzung, die der Computer berechnet hat – keine erzwungene Zugfolge.",
+                        List.of(ENGINE)));
+            }
             findings.stream()
                     .filter(f -> f.isNegative() && f.title().startsWith("Gegnerische"))
                     .limit(2)
                     .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
         } else if (c.oracle().legalMoves(c.after().toFen()).isEmpty()) {
-            st.add(new ExplanationStatement("Der Gegner hat nach deinem Zug keinen legalen Zug mehr.", List.of()));
+            st.add(new ExplanationStatement("Der Gegner hat keinen Zug mehr – die Partie ist zu Ende.", List.of()));
         } else {
-            st.add(new ExplanationStatement("Für die gegnerische Antwort liegt keine Engine-Variante vor.", List.of()));
+            st.add(new ExplanationStatement("Für die Antwort des Gegners liegt keine Berechnung vor.", List.of()));
         }
-        return new ExplanationSection("opponentReply", "Was hätte der Gegner darauf spielen können?", st);
+        return new ExplanationSection("opponentReply", "Wie kann der Gegner antworten?", st);
     }
 
     private ExplanationSection betterMove(Input in) {
@@ -284,19 +289,22 @@ public class ExplanationBuilder {
         PositionContext c = in.played();
         if (in.best().isPresent()) {
             PositionContext b = in.best().get();
-            st.add(new ExplanationStatement("Besser war " + b.line().ply(0).numberedSan() + " mit einer Bewertung von "
-                    + display(b.scoreAfter()) + " statt " + display(c.scoreAfter()) + " nach deinem Zug.", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Besser war: " + GermanText.moveWithNotation(b.line().ply(0)) + ".", List.of(ENGINE)));
+            if (b.scoreAfter().isPresent() && c.scoreAfter().isPresent()) {
+                st.add(new ExplanationStatement("Damit gilt: " + GermanText.evaluationWords(b.scoreAfter().get())
+                        + ". Nach deinem Zug dagegen: " + GermanText.evaluationWords(c.scoreAfter().get()) + ".", List.of(ENGINE)));
+            }
             if (b.line().size() > 1) {
-                st.add(new ExplanationStatement("Hauptvariante: " + b.line().numbered(0, Math.min(b.line().size(), 8))
-                        + " (gefundene Hauptvariante, keine erzwungene Zugfolge).", List.of(ENGINE)));
+                st.add(new ExplanationStatement("So geht es danach weiter: " + GermanText.lineWords(b.line(), 1, 3, c.user())
+                        + " (mögliche Fortsetzung, keine erzwungene Zugfolge).", List.of(ENGINE)));
             }
         } else {
-            st.add(new ExplanationStatement("Du hast den besten gefundenen Zug gespielt.", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Du hast den besten Zug gespielt, den der Computer gefunden hat.", List.of(ENGINE)));
         }
         if (!in.alternatives().isEmpty()) {
-            st.add(new ExplanationStatement("Weitere geprüfte Kandidaten: " + String.join(", ", in.alternatives()) + ".", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Ebenfalls gut gewesen wären: " + String.join("; ", in.alternatives()) + ".", List.of(ENGINE)));
         }
-        return new ExplanationSection("betterMove", "Welcher Zug wäre besser gewesen?", st);
+        return new ExplanationSection("betterMove", "Was wäre besser gewesen?", st);
     }
 
     private ExplanationSection whyBetter(Input in, List<CoachingFinding> playedFindings) {
@@ -305,12 +313,11 @@ public class ExplanationBuilder {
             playedFindings.stream().filter(f -> f.isPositive() && !f.overriddenByTactics()).limit(3)
                     .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
             if (st.isEmpty()) {
-                st.add(new ExplanationStatement("Kein anderer geprüfter Zug erreicht laut Engine eine bessere Bewertung.", List.of(ENGINE)));
+                st.add(new ExplanationStatement("Kein anderer Zug ist laut Computer besser.", List.of(ENGINE)));
             }
             return new ExplanationSection("whyBetter", "Warum ist dein Zug gut?", st);
         }
         PositionContext b = in.best().get();
-        String bestSan = b.line().ply(0).numberedSan();
         Set<String> playedPositive = new LinkedHashSet<>();
         playedFindings.stream().filter(CoachingFinding::isPositive).forEach(f -> playedPositive.add(f.ruleId() + "|" + f.title()));
         Set<String> bestNegative = new LinkedHashSet<>();
@@ -320,31 +327,32 @@ public class ExplanationBuilder {
                 .filter(f -> f.isPositive() && !playedPositive.contains(f.ruleId() + "|" + f.title()) && f.severity() != Severity.INFO)
                 .sorted(Comparator.comparingInt(ExplanationBuilder::weight).reversed())
                 .limit(3)
-                .forEach(f -> st.add(new ExplanationStatement(bestSan + ": " + f.explanation(), List.of(f.ruleId()))));
+                .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
         playedFindings.stream()
                 .filter(f -> f.isNegative() && !f.overriddenByTactics() && !bestNegative.contains(f.ruleId() + "|" + f.title()))
                 .limit(2)
-                .forEach(f -> st.add(new ExplanationStatement(bestSan + " vermeidet das Problem „" + f.title() + "“.", List.of(f.ruleId()))));
+                .forEach(f -> st.add(new ExplanationStatement("Mit dem besseren Zug wäre das Problem „" + f.title()
+                        + "“ gar nicht erst entstanden.", List.of(f.ruleId()))));
         if (st.isEmpty()) {
-            st.add(new ExplanationStatement("Die Regelbasis findet keinen einzelnen Merkmalsunterschied; der Vorteil von " + bestSan
-                    + " ergibt sich aus der Engine-Berechnung: " + b.line().numbered(0, Math.min(b.line().size(), 6))
-                    + " (Hauptvariante, keine erzwungene Zugfolge).", List.of(ENGINE)));
+            st.add(new ExplanationStatement("Der Unterschied zeigt sich erst beim genauen Vorausrechnen. Der Computer sieht danach "
+                    + "diese Fortsetzung: " + GermanText.lineWords(b.line(), 0, 4, b.user()) + ".", List.of(ENGINE)));
         }
-        return new ExplanationSection("whyBetter", "Warum ist dieser alternative Zug besser?", st);
+        return new ExplanationSection("whyBetter", "Warum ist das besser?", st);
     }
 
     private ExplanationSection plans(Input in) {
         List<ExplanationStatement> st = new ArrayList<>();
-        in.plans().stream().filter(p -> p.side().equals("USER")).limit(2)
-                .forEach(p -> st.add(new ExplanationStatement("Für dich: " + p.title() + ". " + p.explanation(),
+        in.plans().stream().filter(p -> p.side().equals("USER") && p.source() != de.chesscoach.domain.coaching.FindingSource.ENGINE).limit(2)
+                .forEach(p -> st.add(new ExplanationStatement("Dein Plan – " + p.title() + ": " + p.explanation(),
                         List.of(p.source() == de.chesscoach.domain.coaching.FindingSource.ENGINE ? ENGINE : "STRAT-011"))));
-        in.plans().stream().filter(p -> p.side().equals("OPPONENT")).limit(2)
-                .forEach(p -> st.add(new ExplanationStatement("Für den Gegner: " + p.title() + ". " + p.explanation(),
+        in.plans().stream().filter(p -> p.side().equals("OPPONENT") && p.source() != de.chesscoach.domain.coaching.FindingSource.ENGINE).limit(1)
+                .forEach(p -> st.add(new ExplanationStatement("Plan des Gegners – " + p.title() + ": " + p.explanation(),
                         List.of(p.source() == de.chesscoach.domain.coaching.FindingSource.ENGINE ? ENGINE : "STRAT-011"))));
         if (st.isEmpty()) {
-            st.add(new ExplanationStatement("Aus den Stellungsmerkmalen ergibt sich derzeit kein eindeutiger langfristiger Plan.", List.of("STRAT-011")));
+            st.add(new ExplanationStatement("Gerade gibt es keinen klaren langfristigen Plan. Bring deine Figuren auf gute Felder und "
+                    + "achte darauf, dass nichts ungeschützt steht.", List.of("STRAT-011")));
         }
-        return new ExplanationSection("plans", "Welche langfristigen Pläne ergeben sich daraus?", st);
+        return new ExplanationSection("plans", "Wie geht es weiter?", st);
     }
 
     private static String principle(List<CoachingFinding> findings, MoveClassification cls, ExplanationType type) {
@@ -353,25 +361,26 @@ public class ExplanationBuilder {
             return relevant.get().learningPrinciple();
         }
         return switch (type) {
-            case FORCED_MOVE -> "Auch erzwungene Züge verdienen Aufmerksamkeit: Prüfe, warum die Alternativen scheitern.";
-            case UNCERTAIN_ANALYSIS -> "Wenn die Lage unklar ist, wähle Züge, die deine Figuren verbessern und keine Schwächen schaffen.";
-            case DRAWING_RESOURCE -> "In schlechteren Stellungen zählt jede Remisressource: Suche aktive Verteidigung statt passiven Abwartens.";
+            case FORCED_MOVE -> "Auch wenn es nur einen guten Zug gibt: Schau nach, warum die anderen Züge schlecht wären.";
+            case UNCERTAIN_ANALYSIS -> "Wenn du unsicher bist: Bring deine Figuren auf gute Felder und lass nichts ungeschützt stehen.";
+            case DRAWING_RESOURCE -> "Auch in schwierigen Stellungen nicht aufgeben: Aktive Verteidigung rettet oft ein Remis.";
             default -> cls.isError()
-                    ? "Vergleiche vor jedem Zug mindestens zwei Kandidaten und prüfe die forcierenden Antworten des Gegners."
-                    : "Spiele weiter nach dem Grundsatz: Erst Sicherheit prüfen, dann die Figuren aktiv verbessern.";
+                    ? "Frag dich vor jedem Zug: Was droht mein Gegner? Steht eine meiner Figuren ungeschützt? "
+                    + "Welche zwei, drei Züge kommen in Frage?"
+                    : "Weiter so: Erst prüfen, ob alles sicher steht, dann die Figuren verbessern.";
         };
     }
 
     private static String engineSummary(Input in) {
         PositionContext c = in.played();
         if (c.scoreAfter().isEmpty()) {
-            return "Für diesen Zug liegt keine verlässliche Engine-Bewertung vor.";
+            return "Für diesen Zug liegt keine sichere Bewertung des Computers vor.";
         }
         if (in.best().isPresent()) {
-            return "Laut Engine-Analyse ist " + in.best().get().line().ply(0).numberedSan() + " stärker ("
-                    + display(in.best().get().scoreAfter()) + " statt " + display(c.scoreAfter()) + ").";
+            return "Laut Computer war " + GermanText.moveWithNotation(in.best().get().line().ply(0)) + " besser. Nach deinem Zug gilt: "
+                    + GermanText.evaluationWords(c.scoreAfter().get()) + ".";
         }
-        return "Laut Engine-Analyse hält der Zug die Bewertung bei " + c.scoreAfter().get().display() + ".";
+        return "Laut Computer ist das ein guter Zug. Danach gilt: " + GermanText.evaluationWords(c.scoreAfter().get()) + ".";
     }
 
     private static String display(Optional<Score> score) {

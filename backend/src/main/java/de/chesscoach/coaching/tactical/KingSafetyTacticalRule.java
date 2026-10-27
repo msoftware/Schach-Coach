@@ -71,10 +71,10 @@ public class KingSafetyTacticalRule extends AbstractRule implements TacticalRule
         FindingBuilder b = FindingBuilder.of(this).negative()
                 .severity(checksInLine ? Severity.HIGH : Severity.MEDIUM)
                 .squares(newlyAttacked).pieces(c.after(), attackers).square(c.move().from())
-                .explanation("Durch " + c.move().san() + " wird die Linie über " + de.chesscoach.domain.position.Squares.name(c.move().from())
-                        + " frei: " + GermanText.join(attackers.stream().map(a -> GermanText.opponentPieceOn(c.after(), a)).toList())
-                        + " erreicht jetzt die Felder " + GermanText.squares(newlyAttacked) + " in der Nähe deines Königs."
-                        + (checksInLine ? " In der Engine-Variante nutzt der Gegner das mit Schachgeboten: " + c.line().numbered(0, 5) + "." : ""));
+                .explanation("Vorsicht mit deinem König: Dein Zug öffnet einen Weg über " + de.chesscoach.domain.position.Squares.name(c.move().from())
+                        + ". Jetzt kann " + GermanText.join(attackers.stream().map(a -> GermanText.opponentPieceOn(c.after(), a)).toList())
+                        + " die Felder " + GermanText.squares(newlyAttacked) + " direkt neben deinem König erreichen."
+                        + (checksInLine ? " Der Computer zeigt, dass der Gegner das für Schachgebote nutzt." : ""));
         if (checksInLine) {
             b.verified().lineEvidence(c.line(), 5, null, null, "Angriff auf den König", Confidence.MEDIUM);
         } else {

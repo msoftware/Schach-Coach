@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { MoveAnalysis } from '@/models/analysis';
 import { CLASSIFICATION_COLORS, CLASSIFICATION_ICONS } from '@/models/analysis';
 import { describeMove } from '@/utils/moveText';
+import { evaluationColor, evaluationWords, pawnsWords } from '@/utils/scoreText';
 
 const props = defineProps<{ analysis: MoveAnalysis | null; error?: string | null }>();
 const emit = defineEmits<{ details: []; retry: [] }>();
@@ -78,20 +79,19 @@ const loss = computed(() => a.value?.evaluationLoss?.centipawns ?? null);
       <div v-if="bestLabel && a.bestMoveUci !== a.playedMoveUci" class="q-mb-sm">
         <div class="text-subtitle2">Bessere Alternative</div>
         <div class="text-body1"><strong>{{ bestText }}</strong> <span class="text-grey-8">({{ bestLabel }})</span></div>
-        <div class="text-body2 text-grey-8">Bewertung {{ a.bestScore?.display }} statt {{ a.scoreAfter?.display }}</div>
+        <div class="text-body2 text-grey-8">Mit diesem Zug: {{ evaluationWords(a.bestScore) }}</div>
       </div>
-      <div v-else class="q-mb-sm text-positive">Du hast den besten gefundenen Zug gespielt.</div>
+      <div v-else class="q-mb-sm text-positive">Du hast den besten Zug gespielt, den der Computer gefunden hat.</div>
 
-      <div class="row q-gutter-md text-body2">
-        <div>Bewertung: <strong>{{ a.scoreBefore?.display }}</strong> → <strong>{{ a.scoreAfter?.display }}</strong></div>
-        <div v-if="loss != null && loss > 0">Verlust: <strong>{{ loss }} cp</strong></div>
-        <div>Zuverlässigkeit:
-          <strong :class="a.analysisConfidence === 'LOW' ? 'text-negative' : ''">
-            {{ a.analysisConfidence === 'HIGH' ? 'hoch' : a.analysisConfidence === 'MEDIUM' ? 'mittel' : 'niedrig' }}
-          </strong>
+      <div class="evaluation text-body2" data-testid="evaluation">
+        <div>Vor deinem Zug: <strong :class="evaluationColor(a.scoreBefore)">{{ evaluationWords(a.scoreBefore) }}</strong></div>
+        <div>Nach deinem Zug: <strong :class="evaluationColor(a.scoreAfter)">{{ evaluationWords(a.scoreAfter) }}</strong></div>
+        <div v-if="loss != null && loss >= 30">Verschenkt gegenüber dem besten Zug: <strong>{{ pawnsWords(loss) }}</strong></div>
+        <div v-if="a.analysisConfidence !== 'HIGH'" class="text-orange-10">
+          Der Computer ist sich hier nicht ganz sicher – nimm die Bewertung als Einschätzung.
         </div>
       </div>
-      <div class="text-caption text-grey-7 q-mt-xs">Bewertungen aus deiner Sicht, berechnet von der Engine; Erklärungen von der Coaching-Logik.</div>
+      <div class="text-caption text-grey-7 q-mt-xs">Die Bewertung stammt vom Schachcomputer, die Erklärung von den Coaching-Regeln.</div>
     </q-card-section>
 
     <q-card-actions v-if="completed" align="right">
@@ -100,3 +100,7 @@ const loss = computed(() => a.value?.evaluationLoss?.centipawns ?? null);
     <q-card-section v-if="error" class="text-negative text-body2">{{ error }}</q-card-section>
   </q-card>
 </template>
+
+<style scoped>
+.evaluation { display: grid; gap: 2px; }
+</style>

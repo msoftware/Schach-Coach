@@ -50,7 +50,7 @@ export function completedAnalysis(overrides: Partial<MoveAnalysis> = {}): MoveAn
       },
     ],
     findings: [], strategicPlans: [], sections: [
-      { key: 'assessment', question: 'Was war an meinem Zug gut oder schlecht?', statements: [{ text: 'Testaussage', sources: ['ENGINE'] }] },
+      { key: 'assessment', question: 'Was war gut, was war schlecht?', statements: [{ text: 'Testaussage', sources: ['ENGINE'] }] },
     ],
     tip: null, learningTags: ['STRAT-002'], material: { before: 0, after: 0, delta: 0 }, analysisConfidence: 'HIGH',
     confidenceReasons: [], critical: false,

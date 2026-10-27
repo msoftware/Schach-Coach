@@ -70,7 +70,7 @@ public class EndgameRule extends AbstractRule implements StrategicRule {
                         .title("Opposition")
                         .square(c.after().kingSquare(user)).square(c.after().kingSquare(c.opponent()))
                         .explanation("Die Könige stehen sich mit einem Feld Abstand gegenüber und der Gegner ist am Zug: Du hast die "
-                                + "Opposition. Der gegnerische König muss ausweichen und dir Felder überlassen.")
+                                + "Opposition. Der gegnerische König muss zur Seite ausweichen, und dein König kann vorrücken.")
                         .build());
             }
         }
@@ -101,8 +101,8 @@ public class EndgameRule extends AbstractRule implements StrategicRule {
                         .title("Umwandlungsrennen")
                         .square(c.move().to()).squares(theirPassed)
                         .explanation("Beide Seiten haben Freibauern: Dein Bauer braucht noch " + ownSteps + " Schritte zur Umwandlung, "
-                                + "der schnellste gegnerische " + theirSteps + ". Der Gegner ist am Zug. Für das genaue Ergebnis ist die "
-                                + "Engine-Bewertung maßgeblich.")
+                                + "der schnellste gegnerische " + theirSteps + ". Der Gegner ist am Zug. Wer das Rennen gewinnt, zeigt die "
+                                + "Bewertung des Computers.")
                         .build());
             }
         }

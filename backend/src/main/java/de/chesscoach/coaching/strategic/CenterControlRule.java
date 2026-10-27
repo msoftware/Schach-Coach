@@ -65,7 +65,7 @@ public class CenterControlRule extends AbstractRule implements StrategicRule {
                                 .title("Zentraler Bauernhebel")
                                 .square(c.move().to()).square(sq)
                                 .explanation("Der Bauer auf " + Squares.name(c.move().to()) + " greift den gegnerischen Zentralbauern auf "
-                                        + Squares.name(sq) + " an. Dieser Hebel stellt das gegnerische Zentrum in Frage.")
+                                        + Squares.name(sq) + " an. So machst du dem Gegner die Brettmitte streitig.")
                                 .build());
                     }
                 }
@@ -74,9 +74,9 @@ public class CenterControlRule extends AbstractRule implements StrategicRule {
         if (delta >= 2 || (occupiesCenter && delta >= 1)) {
             findings.add(FindingBuilder.of(this).positive().heuristic().severity(delta >= 3 ? Severity.MEDIUM : Severity.LOW)
                     .squares(gained.isEmpty() ? List.of(c.move().to()) : gained)
-                    .explanation((occupiesCenter ? (c.movedPiece().kind().feminine() ? "Deine " : "Dein ") + moved + " besetzt das Zentrumsfeld " + Squares.name(c.move().to()) + ". " : "")
-                            + (gained.isEmpty() ? "" : "Du kontrollierst jetzt zusätzlich " + GermanText.squares(gained) + ". ")
-                            + "Zentrumskontrolle: du " + before + " → " + after + ", Gegner " + opponentAfter + ".")
+                    .explanation((occupiesCenter ? (c.movedPiece().kind().feminine() ? "Deine " : "Dein ") + moved + " steht jetzt in der Brettmitte auf " + Squares.name(c.move().to()) + ". " : "")
+                            + (gained.isEmpty() ? "" : "Zusätzlich kannst du jetzt " + GermanText.squares(gained) + " erreichen. ")
+                            + "Die Brettmitte (d4, e4, d5, e5) ist wichtig, weil Figuren von dort aus viele Felder erreichen.")
                     .build());
         } else if (delta <= -2) {
             findings.add(FindingBuilder.of(this).negative().heuristic().severity(delta <= -3 ? Severity.MEDIUM : Severity.LOW)
@@ -84,7 +84,7 @@ public class CenterControlRule extends AbstractRule implements StrategicRule {
                     .squares(lost).square(c.move().from())
                     .explanation((c.movedPiece().kind().feminine() ? "Deine " : "Dein ") + moved + " verlässt " + Squares.name(c.move().from()) + " und kontrolliert "
                             + (lost.isEmpty() ? "weniger Zentrumsfelder" : GermanText.squares(lost) + " nicht mehr")
-                            + ". Zentrumskontrolle: du " + before + " → " + after + ", Gegner " + opponentBefore + " → " + opponentAfter + ".")
+                            + ". Dadurch hast du weniger Einfluss auf die wichtige Brettmitte.")
                     .build());
         }
         return findings;

@@ -40,7 +40,7 @@ class StrategicRulesTest {
         void developingKnight() {
             List<CoachingFinding> f = run(rule, Contexts.of(START, "g1f3").build());
             assertThat(f).extracting(CoachingFinding::title).containsExactly("Figur entwickelt");
-            assertThat(f.get(0).explanation()).contains("g1").contains("f3").contains("Noch unentwickelt");
+            assertThat(f.get(0).explanation()).contains("g1").contains("f3").contains("Noch nicht im Spiel");
         }
 
         @Test

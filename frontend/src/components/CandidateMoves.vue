@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import type { Candidate } from '@/models/analysis';
+import { describeMove } from '@/utils/moveText';
+import { evaluationColor, evaluationWords } from '@/utils/scoreText';
 
-defineProps<{ candidates: Candidate[]; selectedUci: string | null }>();
+const props = defineProps<{ candidates: Candidate[]; selectedUci: string | null; startFen?: string }>();
+
+function describe(c: Candidate): string {
+  return props.startFen ? describeMove(props.startFen, c.uci, c.line[0]?.san ?? c.san) : c.san;
+}
 const emit = defineEmits<{ select: [uci: string] }>();
 </script>
 
 <template>
   <section aria-label="Kandidatenzüge">
-    <div class="text-subtitle2 q-mb-xs">Kandidatenzüge</div>
+    <div class="text-subtitle2 q-mb-xs">Diese Züge hat der Computer auch geprüft</div>
     <p class="text-caption text-grey-8 q-mb-sm">
-      Varianten sind Hauptvarianten der Engine-Suche, keine erzwungenen Zugfolgen. Klicke auf einen Kandidaten,
-      um die Variante auf dem Brett durchzuspielen.
+      Klicke auf einen Zug, um auf dem Brett zu sehen, wie es weitergehen könnte. Das ist ein Vorschlag des Computers –
+      keine erzwungenen Zugfolgen, der Gegner kann auch anders spielen.
     </p>
     <q-list bordered separator class="rounded-borders">
       <q-item v-for="c in candidates" :key="c.uci" clickable :active="selectedUci === c.uci" active-class="bg-blue-1"
@@ -23,15 +29,15 @@ const emit = defineEmits<{ select: [uci: string] }>();
           </div>
         </q-item-section>
         <q-item-section>
+          <q-item-label class="text-weight-medium">{{ describe(c) }}</q-item-label>
           <q-item-label>
-            <strong>{{ c.score.display }}</strong>
-            <span class="text-grey-8"> · Tiefe {{ c.depth }}</span>
+            <span :class="evaluationColor(c.score)">{{ evaluationWords(c.score) }}</span>
             <span class="text-grey-8"> · {{ c.comparison }}</span>
           </q-item-label>
           <q-item-label caption class="variation-line">
             {{ c.line.map((m) => m.numbered).join(' ') }}<span v-if="c.lineTruncated"> (gekürzt)</span>
           </q-item-label>
-          <q-item-label v-if="c.motifs.length" caption>Taktische Motive: {{ c.motifs.join(', ') }}</q-item-label>
+          <q-item-label v-if="c.motifs.length" caption>Taktik: {{ c.motifs.join(', ') }}</q-item-label>
           <q-item-label v-if="c.strategicPros.length" caption class="text-positive">Vorteile: {{ c.strategicPros.join(', ') }}</q-item-label>
           <q-item-label v-if="c.strategicCons.length" caption class="text-negative">Nachteile: {{ c.strategicCons.join(', ') }}</q-item-label>
         </q-item-section>

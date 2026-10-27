@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeMove } from './moveText';
+import { evaluationWords, pawnsWords } from './scoreText';
 import { START } from '@/test/fixtures';
 
 describe('describeMove', () => {
@@ -21,5 +22,15 @@ describe('describeMove', () => {
     expect(describeMove('r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', 'h5f7', 'Qxf7#'))
       .toBe('Dame von h5 schlägt Bauer auf f7 – Schachmatt');
     expect(describeMove('4k3/8/8/8/8/8/8/R3K3 w Q - 0 1', 'a1a8', 'Ra8+')).toBe('Turm von a1 nach a8 – Schach');
+  });
+});
+
+describe('scoreText', () => {
+  it('beschreibt Bewertungen in Worten', () => {
+    expect(evaluationWords({ type: 'CP', value: 20, display: '+0.20', perspective: 'USER' })).toBe('ausgeglichen');
+    expect(evaluationWords({ type: 'CP', value: -229, display: '-2.29', perspective: 'USER' })).toBe('der Gegner steht klar besser');
+    expect(evaluationWords({ type: 'MATE', value: 2, display: 'M2', perspective: 'USER' })).toBe('du kannst in 2 Zügen mattsetzen');
+    expect(pawnsWords(250)).toBe('etwa 2½ Bauern');
+    expect(pawnsWords(10)).toBe('fast nichts');
   });
 });

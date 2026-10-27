@@ -36,26 +36,32 @@ Stellung (nur Ansicht). „Zur aktuellen Stellung“ (⏭) kehrt zum Spiel zurü
 Nach jedem eigenen Zug startet automatisch die Analyse. Die **Zusammenfassung** zeigt:
 
 - **Qualitätsklasse:** Bestzug, Sehr gut, Gut, Ungenau, Fehler, Grober Fehler, Erzwungen oder Unsicher;
+- deinen Zug in Worten (z. B. „Springer von f3 schlägt Bauer auf e5“);
 - die **wichtigste Begründung** („Warum?“);
-- die **bessere Alternative** mit Bewertung;
-- die **Bewertung vorher → nachher** (aus deiner Sicht, z. B. „+0.35“ = leichter Vorteil für dich; „M3“ = Matt in 3);
-- die **Zuverlässigkeit** der Analyse. „vorläufig“ bedeutet: Die Suche war nicht tief genug für eine sichere Einordnung.
+- die **bessere Alternative**, ebenfalls in Worten;
+- die **Bewertung in Worten** vor und nach deinem Zug (z. B. „ausgeglichen“, „du stehst klar besser“,
+  „der Gegner steht deutlich besser“) und wie viel du gegenüber dem besten Zug verschenkt hast
+  (z. B. „etwa 2½ Bauern“);
+- einen Hinweis, wenn sich der Computer nicht sicher ist („vorläufig“).
 
 „**Details ansehen**“ öffnet:
 
-- **Erklärung:** Antworten auf sieben Fragen – Was war gut/schlecht? Welche Konsequenz? Was hätte der Gegner gespielt?
-  Welcher Zug wäre besser? Warum? Welche Pläne? Welches Prinzip merken? Jede Aussage nennt ihre Quelle
-  („Engine“ = berechnet von der Schach-Engine; „Taktik-/Strategieregel …“ = abgeleitet von der Coaching-Logik).
-- **Kandidaten:** mehrere Züge mit Bewertung, Suchtiefe, Hauptvariante, taktischen Motiven und strategischen Vor- und
-  Nachteilen. Ein Klick zeigt die **Variante auf dem Brett**; mit den Pfeilen spielst du sie Zug für Zug durch.
-  Varianten verändern die Partie nicht. „Variante verlassen“ kehrt zur Partie zurück.
-- **Befunde:** taktische Motive (Ebene 1) und strategische Bewertung nach Laskers Prinzipien (Ebene 2), jeweils mit
-  Kennzeichnung „belegt“ oder „Heuristik“. Beim Überfahren werden die betroffenen Felder markiert.
-- **Pläne:** langfristige Pläne für dich und den Gegner, jeweils mit dem Stellungsmerkmal, auf dem sie beruhen.
-- **Engine:** Bewertungen, Verlust gegenüber dem besten Zug, Suchgrenzen, Knoten, Zeit, Regelversion;
+- **Erklärung:** Antworten auf sieben Fragen – Was war gut, was war schlecht? Was passiert durch deinen Zug? Wie kann
+  der Gegner antworten? Was wäre besser gewesen? Warum ist das besser? Wie geht es weiter? Was kannst du dir merken?
+  Alle Züge werden in Worten beschrieben, die Kurznotation steht in Klammern. Hinter jeder Aussage steht, woher sie
+  kommt („Computer“ = vom Schachcomputer berechnet; „Regel …“ = aus den Coaching-Regeln abgeleitet).
+- **Andere Züge:** weitere Züge, die der Computer geprüft hat, mit Bewertung in Worten und Vergleich mit deinem Zug.
+  Ein Klick zeigt die **Fortsetzung auf dem Brett**; mit den Pfeilen spielst du sie Zug für Zug durch.
+  Das verändert die Partie nicht. „Variante verlassen“ kehrt zur Partie zurück.
+- **Erkenntnisse:** Taktik (direkte Drohungen und Schlagzüge) und Strategie (langfristige Vor- und Nachteile nach
+  Laskers Prinzipien). „nachgerechnet“ heißt: durch Züge bestätigt; „Faustregel“ heißt: allgemeine Erfahrungsregel.
+  Beim Überfahren werden die betroffenen Felder markiert.
+- **Pläne:** was du und der Gegner als Nächstes vorhaben könnt, jeweils mit Bezug auf die Stellung.
+- **Zahlen:** die genauen Werte für Fortgeschrittene (Bewertungen in Bauerneinheiten, Rechentiefe, Suchgrenzen);
   „Varianten vertiefen“ startet eine gründlichere Analyse.
 
-Hinweis: Varianten sind die von der Suche gefundenen Hauptvarianten, keine erzwungenen Zugfolgen.
+Hinweis: Die gezeigten Fortsetzungen sind Vorschläge des Computers, keine erzwungenen Zugfolgen – der Gegner kann auch
+anders spielen.
 
 ## Einstellungen
 

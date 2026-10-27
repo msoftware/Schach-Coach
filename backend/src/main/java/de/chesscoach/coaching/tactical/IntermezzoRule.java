@@ -3,6 +3,7 @@ package de.chesscoach.coaching.tactical;
 import de.chesscoach.coaching.AbstractRule;
 import de.chesscoach.coaching.EngineLine;
 import de.chesscoach.coaching.FindingBuilder;
+import de.chesscoach.coaching.GermanText;
 import de.chesscoach.coaching.LinePly;
 import de.chesscoach.coaching.PositionContext;
 import de.chesscoach.coaching.TacticalRule;
@@ -55,10 +56,10 @@ public class IntermezzoRule extends AbstractRule implements TacticalRule {
                 findings.add(FindingBuilder.of(this).positive().verified()
                         .severity(Severity.MEDIUM)
                         .square(square).square(c.move().to())
-                        .explanation("Statt sofort auf " + de.chesscoach.domain.position.Squares.name(square)
-                                + " zurückzuschlagen, spielst du den Zwischenzug " + c.move().san()
-                                + (c.move().check() ? " mit Schach" : " mit einer Drohung")
-                                + ". Laut Engine ist das mindestens so stark wie der direkte Rückschlag.")
+                        .explanation("Clever: Statt sofort auf " + de.chesscoach.domain.position.Squares.name(square)
+                                + " zurückzuschlagen, spielst du zuerst " + GermanText.moveWithNotation(c.line().ply(0))
+                                + (c.move().check() ? " und gibst Schach" : " und stellst eine Drohung auf")
+                                + ". Das nennt man Zwischenzug. Laut Computer ist das mindestens so gut wie das direkte Zurückschlagen.")
                         .lineEvidence(c.line(), 4, null, null, "Zwischenzug", Confidence.MEDIUM)
                         .build());
             }
@@ -73,9 +74,9 @@ public class IntermezzoRule extends AbstractRule implements TacticalRule {
                         .title("Zwischenzug verpasst")
                         .severity(Severity.MEDIUM)
                         .square(square).square(bestMove.to())
-                        .explanation("Du hast direkt zurückgeschlagen. Stärker war laut Engine der Zwischenzug "
-                                + best.ply(0).numberedSan() + (bestMove.check() ? " mit Schach" : " mit Drohung")
-                                + ": " + best.numbered(0, 4) + ".")
+                        .explanation("Du hast sofort zurückgeschlagen. Besser war es, zuerst " + GermanText.moveWithNotation(best.ply(0))
+                                + " zu spielen" + (bestMove.check() ? " (mit Schach)" : " (mit einer Drohung)")
+                                + " und erst danach zurückzuschlagen. Ein solcher Zug heißt Zwischenzug.")
                         .lineEvidence(best, 4, null, null, "verpasster Zwischenzug", Confidence.MEDIUM)
                         .build());
             }

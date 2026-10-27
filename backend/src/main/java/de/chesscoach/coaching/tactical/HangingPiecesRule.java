@@ -54,19 +54,20 @@ public class HangingPiecesRule extends AbstractRule implements TacticalRule {
                     .negative()
                     .piece(c.after(), sq)
                     .squares(c.after().attackersOf(sq, c.opponent()));
-            String base = GermanText.yourPieceOn(c.after(), sq) + " wird von " + attackers + " angegriffen und ist "
-                    + (defenders == 0 ? "ungedeckt" : "nur unzureichend gedeckt (" + defenders + " Verteidiger)") + ".";
+            String base = GermanText.yourPieceOn(c.after(), sq) + " ist in Gefahr: Der Gegner kann die Figur mit " + attackers
+                    + " schlagen" + (defenders == 0 ? ", und keine deiner Figuren schützt sie."
+                    : ", und deine Figuren schützen sie nicht ausreichend.");
             if (confirmed) {
                 builder.verified().severity(severity)
-                        .explanation(base + " Die Engine schlägt in ihrer Hauptvariante tatsächlich mit "
-                                + reply.get().numberedSan() + ".")
+                        .explanation(base + " Der Computer zeigt, dass der Gegner das sofort ausnutzt: "
+                                + GermanText.moveWithNotation(reply.get()) + ".")
                         .lineEvidence(c.line(), 3, null, null, "Figur geht verloren", Confidence.HIGH);
             } else {
                 // Ohne Bestätigung durch die Variante höchstens mittlere Gewichtung.
                 Severity capped = severity.atLeast(Severity.MEDIUM) ? Severity.MEDIUM : severity;
                 builder.heuristic().severity(kind == PieceKind.PAWN ? Severity.LOW : capped)
-                        .explanation(base + " Nach statischer Abtauschrechnung wäre das Schlagen für den Gegner günstig; "
-                                + "die Engine-Variante schlägt allerdings nicht sofort, was auf eine taktische Gegenchance hindeuten kann.");
+                        .explanation(base + " Der Computer schlägt allerdings nicht sofort zu – vielleicht hättest du dann einen Gegentrick. "
+                                + "Sicherer ist es trotzdem, Figuren nicht ungeschützt stehen zu lassen.");
             }
             findings.add(builder.build());
         }

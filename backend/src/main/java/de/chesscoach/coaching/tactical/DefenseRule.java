@@ -56,10 +56,9 @@ public class DefenseRule extends AbstractRule implements TacticalRule {
                         .title("Verteidiger abgezogen")
                         .severity(seeAfter >= 300 ? Severity.HIGH : Severity.MEDIUM)
                         .piece(c.after(), c.move().to()).piece(c.after(), sq)
-                        .explanation("Die gezogene Figur hat auf " + de.chesscoach.domain.position.Squares.name(from) + " "
-                                + GermanText.withArticleAcc(c.after(), sq) + " verteidigt. Nach dem Wegzug ist diese Figur "
-                                + "nicht mehr ausreichend gedeckt."
-                                + (confirmed ? " Die Engine schlägt sofort mit " + c.opponentReply().get().numberedSan() + "." : ""));
+                        .explanation("Die Figur, die du gezogen hast, hat vorher " + GermanText.withArticleAcc(c.after(), sq)
+                                + " beschützt. Jetzt ist diese Figur ungeschützt."
+                                + (confirmed ? " Der Gegner schlägt sie sofort: " + GermanText.moveWithNotation(c.opponentReply().get()) + "." : ""));
                 if (confirmed) {
                     b.verified().lineEvidence(c.line(), 3, null, null, "Figur geht verloren", Confidence.HIGH);
                 } else {
@@ -82,8 +81,8 @@ public class DefenseRule extends AbstractRule implements TacticalRule {
                             .title("Verteidiger beseitigt")
                             .severity(Severity.MEDIUM)
                             .square(capturedSquare).piece(c.after(), sq)
-                            .explanation("Mit " + c.move().san() + " schlägst du einen Verteidiger: "
-                                    + GermanText.opponentPieceOn(c.after(), sq) + " ist danach nicht mehr ausreichend gedeckt.")
+                            .explanation("Mit diesem Schlagzug entfernst du einen Beschützer: "
+                                    + GermanText.opponentPieceOn(c.after(), sq) + " ist jetzt nicht mehr ausreichend geschützt.")
                             .build());
                 }
             }
@@ -100,8 +99,8 @@ public class DefenseRule extends AbstractRule implements TacticalRule {
                     .severity(Severity.MEDIUM)
                     .piece(c.after(), defender).pieces(c.after(), protectedSquares)
                     .explanation(GermanText.capitalize(GermanText.opponentPieceOn(c.after(), defender))
-                            + " ist der einzige Verteidiger von " + GermanText.squares(protectedSquares)
-                            + ", die beide von dir angegriffen werden. Er kann nicht beide Aufgaben gleichzeitig erfüllen.")
+                            + " muss gleichzeitig die Figuren auf " + GermanText.squares(protectedSquares)
+                            + " beschützen, die du beide angreifst. Beides auf einmal schafft sie nicht (überlastete Figur).")
                     .build());
         });
         return findings;

@@ -44,9 +44,9 @@ public class SkewerRule extends AbstractRule implements TacticalRule {
                     .severity(confirmed ? Severity.HIGH : Severity.MEDIUM)
                     .piece(c.after(), skewer.attacker()).piece(c.after(), skewer.front()).piece(c.after(), skewer.back())
                     .explanation(GermanText.capitalize(GermanText.yourPieceOn(c.after(), skewer.attacker())) + " spießt "
-                            + GermanText.opponentPieceAcc(c.after(), skewer.front()) + " auf: Weicht sie aus, wird "
-                            + GermanText.opponentPieceOn(c.after(), skewer.back()) + " dahinter angreifbar."
-                            + (confirmed ? " Die Engine-Variante bestätigt den Gewinn: " + c.line().numbered(0, 3) + "." : ""));
+                            + GermanText.opponentPieceAcc(c.after(), skewer.front()) + " an (Spieß): Geht diese Figur aus dem Weg, kannst du "
+                            + GermanText.withArticleAcc(c.after(), skewer.back()) + " dahinter schlagen."
+                            + (confirmed ? " Genau so rechnet es der Computer: " + GermanText.lineWords(c.line(), 1, 2, c.user()) + "." : ""));
             if (confirmed) {
                 b.verified().lineEvidence(c.line(), 3, null, null, "Spieß gewinnt Material", Confidence.HIGH);
             } else {
@@ -64,9 +64,9 @@ public class SkewerRule extends AbstractRule implements TacticalRule {
                         .title("Gegnerischer Spieß")
                         .severity(Severity.HIGH)
                         .piece(reply.after(), skewer.attacker()).piece(reply.after(), skewer.front()).piece(reply.after(), skewer.back())
-                        .explanation("Dein Zug erlaubt den Spieß " + reply.numberedSan() + ": "
-                                + GermanText.yourPieceOn(reply.after(), skewer.front()) + " muss ausweichen, danach ist "
-                                + GermanText.yourPieceOn(reply.after(), skewer.back()) + " angreifbar.")
+                        .explanation("Achtung, Spieß: Nach deinem Zug kann der Gegner " + GermanText.moveWithNotation(reply) + " spielen. "
+                                + GermanText.capitalize(GermanText.yourPieceOn(reply.after(), skewer.front())) + " muss dann ausweichen, und "
+                                + GermanText.yourPieceOn(reply.after(), skewer.back()) + " dahinter kann geschlagen werden.")
                         .lineEvidence(c.line(), 4, null, null, "Gegnerischer Spieß", Confidence.MEDIUM)
                         .build());
             }

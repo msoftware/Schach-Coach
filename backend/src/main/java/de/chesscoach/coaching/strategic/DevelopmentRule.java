@@ -47,16 +47,16 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
         List<Integer> undevelopedAfter = StrategicFeatures.undevelopedMinors(c.after(), user);
         int ownDeveloped = StrategicFeatures.developedMinors(c.after(), user);
         int opponentDeveloped = StrategicFeatures.developedMinors(c.after(), c.opponent());
-        String comparison = " Entwickelte Leichtfiguren: du " + ownDeveloped + ", Gegner " + opponentDeveloped + ".";
+        String comparison = " Springer und Läufer im Spiel: du " + ownDeveloped + ", Gegner " + opponentDeveloped + ".";
 
         if (kind.isMinor() && undevelopedBefore.contains(from)) {
             findings.add(FindingBuilder.of(this).positive().heuristic().severity(Severity.LOW)
                     .title("Figur entwickelt")
                     .square(c.move().to())
-                    .explanation("Du entwickelst " + (kind.feminine() ? "deine " : "deinen ") + kind.germanName()
-                            + " von " + Squares.name(from) + " nach " + Squares.name(c.move().to()) + "."
-                            + (undevelopedAfter.isEmpty() ? " Damit sind alle Leichtfiguren im Spiel."
-                            : " Noch unentwickelt: " + GermanText.join(undevelopedAfter.stream().map(sq -> GermanText.pieceOn(c.after(), sq)).toList()) + ".")
+                    .explanation("Gut: Du bringst " + (kind.feminine() ? "deine " : "deinen ") + kind.germanName()
+                            + " von " + Squares.name(from) + " nach " + Squares.name(c.move().to()) + " ins Spiel."
+                            + (undevelopedAfter.isEmpty() ? " Damit sind alle Springer und Läufer im Spiel."
+                            : " Noch nicht im Spiel: " + GermanText.join(undevelopedAfter.stream().map(sq -> GermanText.pieceOn(c.after(), sq)).toList()) + ".")
                             + comparison)
                     .build());
             return findings;
@@ -69,8 +69,8 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
                     .title("Bereits entwickelte Figur erneut gezogen")
                     .piece(c.after(), c.move().to()).squares(undevelopedBefore)
                     .explanation("Du ziehst " + (kind.feminine() ? "deine " : "deinen ") + kind.germanName()
-                            + " erneut, obwohl noch " + undevelopedBefore.size() + " Leichtfiguren auf ihren Startfeldern stehen ("
-                            + GermanText.squares(undevelopedBefore) + "). Dadurch kann der Gegner seine Entwicklung schneller abschließen."
+                            + " schon wieder, obwohl noch " + undevelopedBefore.size() + " Springer und Läufer auf ihren Startfeldern stehen ("
+                            + GermanText.squares(undevelopedBefore) + "). In der Eröffnung ist es besser, zuerst alle Figuren ins Spiel zu bringen, statt eine Figur mehrmals zu ziehen."
                             + comparison)
                     .build());
         }
@@ -79,7 +79,8 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
                     .title("Frühe Damenzüge")
                     .piece(c.after(), c.move().to())
                     .explanation("Die Dame zieht früh ins Spiel, während " + undevelopedBefore.size()
-                            + " Leichtfiguren noch unentwickelt sind. Sie kann von gegnerischen Figuren mit Tempogewinn angegriffen werden.")
+                            + " Springer und Läufer noch nicht im Spiel sind. Der Gegner kann sie angreifen und dabei seine eigenen Figuren "
+                            + "ins Spiel bringen – du verlierst dadurch Zeit.")
                     .build());
         }
         if (kind == PieceKind.PAWN) {
@@ -89,8 +90,8 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
                 findings.add(FindingBuilder.of(this).positive().heuristic().severity(Severity.LOW)
                         .title("Entwicklung vorbereitet")
                         .square(c.move().to())
-                        .explanation("Der Bauernzug " + c.move().san() + " öffnet Diagonalen für deine noch unentwickelten Läufer "
-                                + "(Bewegungsfreiheit von " + bishopMobilityBefore + " auf " + bishopMobilityAfter + " Felder).")
+                        .explanation("Dein Bauernzug macht den Weg frei für deine noch unentwickelten Läufer "
+                                + "(sie erreichen jetzt " + bishopMobilityAfter + " statt " + bishopMobilityBefore + " Felder).")
                         .build());
             }
         }
@@ -98,8 +99,8 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
             findings.add(FindingBuilder.of(this).negative().heuristic().severity(Severity.LOW)
                     .title("Entwicklungsrückstand")
                     .squares(undevelopedAfter)
-                    .explanation("Der Gegner hat " + opponentDeveloped + " Leichtfiguren entwickelt, du erst " + ownDeveloped
-                            + ". Ein Entwicklungsrückstand macht dich anfällig, sobald sich die Stellung öffnet.")
+                    .explanation("Der Gegner hat schon " + opponentDeveloped + " Springer und Läufer im Spiel, du erst " + ownDeveloped
+                            + ". Bring deine Figuren schnell ins Spiel, sonst kann der Gegner dich mit mehr Figuren angreifen.")
                     .build());
         }
         return findings;

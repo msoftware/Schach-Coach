@@ -41,8 +41,8 @@ public class MaterialLossRule extends AbstractRule implements TacticalRule {
                 findings.add(FindingBuilder.of(this)
                         .negative().heuristic().severity(Severity.MEDIUM)
                         .explanation(GermanText.yourPieceOn(c.after(), c.move().to())
-                                + " kann nach statischer Abtauschrechnung mit Gewinn geschlagen werden. "
-                                + "Eine Engine-Variante zur Bestätigung liegt nicht vor.")
+                                + " kann geschlagen werden, und du kannst nicht gleichwertig zurückschlagen. "
+                                + "Der Computer hat das hier nicht nachgerechnet.")
                         .piece(c.after(), c.move().to())
                         .build());
             }
@@ -78,9 +78,9 @@ public class MaterialLossRule extends AbstractRule implements TacticalRule {
             findings.add(FindingBuilder.of(this)
                     .neutral().verified().severity(Severity.LOW)
                     .title("Materialopfer mit Kompensation")
-                    .explanation("In der berechneten Variante " + line.numbered(0, end) + " gibst du "
-                            + GermanText.material(loss) + " ab. Die Engine-Bewertung bleibt jedoch nahezu unverändert – "
-                            + "das Opfer wird durch andere Stellungsfaktoren ausgeglichen.")
+                    .explanation("Du gibst hier " + GermanText.material(loss) + " ab – aber das ist in Ordnung: "
+                            + "Laut Computer bekommst du dafür genug Ausgleich, zum Beispiel aktivere Figuren oder Angriff. "
+                            + "Man nennt das ein Opfer. (Berechnet: " + line.numbered(0, end) + ")")
                     .squares(captureSquares)
                     .lineEvidence(line, end, before, settled, "Materialopfer mit Kompensation", Confidence.MEDIUM)
                     .build());
@@ -96,11 +96,11 @@ public class MaterialLossRule extends AbstractRule implements TacticalRule {
         String reply = c.opponentReply().map(LinePly::numberedSan).orElse("");
         findings.add(FindingBuilder.of(this)
                 .negative().verified().severity(severity)
-                .explanation("Nach deinem Zug kann der Gegner mit " + reply + " Material gewinnen: "
-                        + line.numbered(0, end) + ". Du verlierst dabei " + GermanText.material(loss)
-                        + " (Materialbilanz " + GermanText.balance(before) + " → " + GermanText.balance(settled) + ")."
-                        + (bestSettled != null && c.differsFromBest()
-                        ? " Mit dem besten Zug wäre die Bilanz " + GermanText.balance(bestSettled) + " geblieben." : ""))
+                .explanation("Nach deinem Zug verlierst du " + GermanText.material(loss) + ". "
+                        + c.opponentReply().map(r -> "Der Gegner antwortet: " + GermanText.moveWithNotation(r) + ". ").orElse("")
+                        + GermanText.tradeWords(line, c.user(), end)
+                        + (bestSettled != null && c.differsFromBest() && bestSettled >= before
+                        ? " Mit dem besten Zug hättest du kein Material verloren." : ""))
                 .squares(captureSquares)
                 .lineEvidence(line, end, before, settled, "Materialverlust", Confidence.HIGH)
                 .build());

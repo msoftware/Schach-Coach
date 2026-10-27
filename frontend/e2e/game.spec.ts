@@ -40,7 +40,7 @@ test('Partie spielen: Zug, Coaching, Variante, Computerzug, Undo und Wiederherst
 
   // 4. Erklärung öffnen und eine Kandidatenvariante abspielen.
   await page.getByTestId('btn-details').click();
-  await expect(page.getByTestId('coaching-details')).toContainText('Was war an meinem Zug gut oder schlecht?');
+  await expect(page.getByTestId('coaching-details')).toContainText('Was war gut, was war schlecht?');
   const boardBefore = await page.getByTestId('chess-board').innerHTML();
   await page.getByTestId('tab-candidates').click();
   await page.locator('[data-testid^="candidate-"]').first().click();

@@ -43,8 +43,8 @@ public class PassedPawnTacticalRule extends AbstractRule implements TacticalRule
             findings.add(FindingBuilder.of(this).positive().verified()
                     .severity(Severity.HIGH)
                     .square(line.ply(own).move().to())
-                    .explanation("In der berechneten Variante wandelt dein Bauer mit " + line.ply(own).numberedSan()
-                            + " um: " + line.numbered(0, own + 1) + ".")
+                    .explanation("Dein Bauer kann bis zur letzten Reihe laufen und dort zur Dame werden ("
+                            + line.ply(own).numberedSan() + "). Das hat der Computer so berechnet.")
                     .lineEvidence(line, own + 1, null, null, "Umwandlung", Confidence.MEDIUM)
                     .build());
         }
@@ -54,8 +54,8 @@ public class PassedPawnTacticalRule extends AbstractRule implements TacticalRule
                     .title("Gegnerischer Freibauer läuft durch")
                     .severity(Severity.HIGH)
                     .square(line.ply(theirs).move().to())
-                    .explanation("In der berechneten Variante wandelt der gegnerische Bauer mit " + line.ply(theirs).numberedSan()
-                            + " um: " + line.numbered(0, theirs + 1) + ".")
+                    .explanation("Gefahr: Der gegnerische Bauer kann bis zur letzten Reihe laufen und zur Dame werden ("
+                            + line.ply(theirs).numberedSan() + "). Halte solche Bauern früh auf.")
                     .lineEvidence(line, theirs + 1, null, null, "gegnerische Umwandlung", Confidence.MEDIUM)
                     .build());
         }
@@ -66,9 +66,9 @@ public class PassedPawnTacticalRule extends AbstractRule implements TacticalRule
                             .title("Freibauer außerhalb des Quadrats")
                             .severity(Severity.HIGH)
                             .square(pawn).square(c.after().kingSquare(c.opponent()))
-                            .explanation("Dein Freibauer auf " + Squares.name(pawn) + " ist nach der Quadratregel vom gegnerischen König "
-                                    + "auf " + Squares.name(c.after().kingSquare(c.opponent())) + " nicht mehr einzuholen, sofern "
-                                    + "der Weg frei bleibt.")
+                            .explanation("Dein Bauer auf " + Squares.name(pawn) + " hat freie Bahn, und der gegnerische König auf "
+                                    + Squares.name(c.after().kingSquare(c.opponent())) + " ist zu weit weg, um ihn noch einzuholen "
+                                    + "(Quadratregel) – solange nichts dazwischenkommt.")
                             .build());
                 }
             }

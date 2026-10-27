@@ -39,14 +39,13 @@ public class ForkRule extends AbstractRule implements TacticalRule {
                         .severity(confirmed ? Severity.HIGH : Severity.MEDIUM)
                         .piece(c.after(), c.move().to()).pieces(c.after(), targets);
                 String text = GermanText.yourPieceOn(c.after(), c.move().to()) + " greift gleichzeitig "
-                        + MultiTargetDetector.describeTargets(c.after(), targets) + " an (Gabel).";
+                        + MultiTargetDetector.describeTargets(c.after(), targets) + " an. Das nennt man eine Gabel: "
+                        + "Der Gegner kann nur eine der Figuren retten.";
                 if (confirmed) {
-                    b.verified().explanation(text + " Laut Engine-Variante gewinnst du dadurch Material: "
-                                    + c.line().numbered(0, 3) + ".")
+                    b.verified().explanation(text + " Danach gewinnst du Material: " + GermanText.lineWords(c.line(), 1, 2, c.user()) + ".")
                             .lineEvidence(c.line(), 3, null, null, "Gabel gewinnt Material", Confidence.HIGH);
                 } else {
-                    b.heuristic().explanation(text + " Der Gegner kann nicht beide Ziele zugleich in Sicherheit bringen, "
-                            + "sofern er keine stärkere Gegendrohung hat.");
+                    b.heuristic().explanation(text);
                 }
                 findings.add(b.build());
             }
@@ -63,14 +62,14 @@ public class ForkRule extends AbstractRule implements TacticalRule {
                         .title("Gegnerische Gabel")
                         .severity(confirmed ? Severity.HIGH : Severity.MEDIUM)
                         .piece(reply.after(), reply.move().to()).pieces(reply.after(), targets);
-                String text = "Nach deinem Zug ist die Gabel " + reply.numberedSan() + " möglich: "
-                        + GermanText.opponentPieceOn(reply.after(), reply.move().to()) + " greift "
-                        + MultiTargetDetector.describeTargets(reply.after(), targets) + " an.";
+                String text = "Achtung, Gabel: Nach deinem Zug kann der Gegner " + GermanText.moveWithNotation(reply)
+                        + " spielen. Dann greift " + GermanText.opponentPieceOn(reply.after(), reply.move().to()) + " gleichzeitig "
+                        + MultiTargetDetector.describeTargets(reply.after(), targets) + " an, und du kannst nur eine Figur retten.";
                 if (confirmed) {
-                    b.verified().explanation(text + " Die Engine-Variante gewinnt damit Material: " + c.line().numbered(0, 4) + ".")
+                    b.verified().explanation(text + " So geht es weiter: " + GermanText.lineWords(c.line(), 1, 3, c.user()) + ".")
                             .lineEvidence(c.line(), 4, null, null, "Gegnerische Gabel gewinnt Material", Confidence.HIGH);
                 } else {
-                    b.verified().explanation(text + " Diese Antwort stammt aus der Engine-Hauptvariante.")
+                    b.verified().explanation(text + " Diese Antwort hat der Computer gefunden.")
                             .lineEvidence(c.line(), 2, null, null, "Gegnerische Gabel", Confidence.MEDIUM);
                 }
                 findings.add(b.build());

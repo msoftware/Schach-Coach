@@ -15,9 +15,10 @@ describe('CoachingSummary', () => {
     expect(w.text()).toContain('Bauer von d2 nach d4');
     expect(w.find('[data-testid="main-reason"]').text()).toContain('Testbegründung');
     expect(w.text()).toContain('1.d4');
-    expect(w.text()).toContain('+0.30');
-    expect(w.text()).toContain('-0.50');
-    expect(w.text()).toContain('80 cp');
+    expect(w.find('[data-testid="evaluation"]').text()).toContain('Vor deinem Zug: ausgeglichen');
+    expect(w.find('[data-testid="evaluation"]').text()).toContain('Nach deinem Zug: der Gegner steht etwas besser');
+    expect(w.text()).toContain('Verschenkt gegenüber dem besten Zug: etwa einen Bauern');
+    expect(w.text()).not.toContain('cp');
   });
 
   it('zeigt laufende Analyse ohne Ergebnisfelder vorauszusetzen', () => {
@@ -34,7 +35,7 @@ describe('CoachingSummary', () => {
     });
     expect(w.text()).toContain('vorläufig');
     expect(w.text()).toContain('veraltet');
-    expect(w.text()).toContain('niedrig');
+    expect(w.text()).toContain('nicht ganz sicher');
   });
 
   it('zeigt fehlgeschlagene Analysen mit Wiederholung an', async () => {
@@ -50,8 +51,10 @@ describe('CoachingSummary', () => {
 describe('Kandidaten und Varianten', () => {
   it('kennzeichnet Varianten als Hauptvarianten und meldet die Auswahl', async () => {
     const a = completedAnalysis();
-    const w = mount(CandidateMoves, { props: { candidates: a.candidates!, selectedUci: null } });
+    const w = mount(CandidateMoves, { props: { candidates: a.candidates!, selectedUci: null, startFen: a.fenBefore } });
     expect(w.text()).toContain('keine erzwungenen Zugfolgen');
+    expect(w.text()).toContain('Bauer von d2 nach d4');
+    expect(w.text()).toContain('ausgeglichen');
     expect(w.text()).toContain('1.d4 1...d5');
     await w.find('[data-testid="candidate-d2d4"]').trigger('click');
     expect(w.emitted('select')).toEqual([['d2d4']]);
