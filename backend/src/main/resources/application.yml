@@ -89,6 +89,8 @@ chesscoach:
     game-idle-timeout: 6h
     rate-limit-per-minute: 120
     max-restore-moves: 600
+    rate-limit-per-minute-per-client: 600
+    empty-game-idle-timeout: 30m
 
 ---
 spring:

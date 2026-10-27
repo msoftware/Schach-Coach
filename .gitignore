@@ -13,3 +13,4 @@ frontend/playwright-report/
 .idea/
 .vscode/
 *.iml
+/.claude

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,12 +35,21 @@ public class GameStore {
         return HexFormat.of().formatHex(bytes);
     }
 
-    public void put(GameSession session) {
+    /**
+     * Nimmt eine neue Partie auf. Ist die Höchstzahl erreicht, wird die am längsten unbenutzte Partie verworfen statt
+     * neue Partien abzulehnen; das Frontend stellt eine verworfene Partie bei Bedarf aus dem Browser-Speicher wieder
+     * her. So kann niemand – auch nicht viele Clients hinter derselben IP-Adresse – andere am Spielen hindern.
+     */
+    public synchronized void put(GameSession session) {
         evictIdle();
-        if (sessions.size() >= properties.maxGames()) {
-            throw new GameException(ErrorCode.TOO_MANY_GAMES,
-                    "Der Server hält bereits die maximale Anzahl aktiver Partien. Bitte versuche es später erneut.");
+        while (!sessions.isEmpty() && sessions.size() >= Math.max(1, properties.maxGames())) {
+            sessions.values().stream()
+                    .min(Comparator.comparingLong(GameSession::accessSequence))
+                    .ifPresent(oldest -> sessions.remove(oldest.gameId()));
         }
+        // Die neue Partie gilt ab jetzt als benutzt, sonst könnte sie (z. B. nach einer langen Wiederherstellung)
+        // als älteste sofort wieder verdrängt werden.
+        session.touch();
         sessions.put(session.gameId(), session);
     }
 
@@ -60,9 +70,28 @@ public class GameStore {
         return sessions.size();
     }
 
+    /**
+     * Verwirft inaktive Partien. Partien ohne einen einzigen Zug werden bereits nach der kürzeren
+     * {@code emptyGameIdleTimeout} verworfen; sie lassen sich jederzeit neu starten.
+     */
     @Scheduled(fixedDelayString = "PT5M")
     public void evictIdle() {
-        Instant limit = Instant.now().minus(properties.gameIdleTimeout());
-        sessions.values().removeIf(s -> s.lastAccess().isBefore(limit));
+        Instant now = Instant.now();
+        Instant limit = now.minus(properties.gameIdleTimeout());
+        Instant emptyLimit = now.minus(properties.emptyGameIdleTimeout());
+        sessions.values().removeIf(s -> s.lastAccess().isBefore(limit)
+                || (s.lastAccess().isBefore(emptyLimit) && hasNoMoves(s)));
+    }
+
+    /** Liest die Zughistorie nur unter der Sperre; eine gerade gesperrte Partie ist aktiv und bleibt erhalten. */
+    private static boolean hasNoMoves(GameSession session) {
+        if (!session.lock().tryLock()) {
+            return false;
+        }
+        try {
+            return session.moves().isEmpty();
+        } finally {
+            session.lock().unlock();
+        }
     }
 }

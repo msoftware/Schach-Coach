@@ -210,9 +210,12 @@ export const useAnalysisStore = defineStore('analysis', () => {
     stats.value = (await localGameStorage.loadLearningStats()) ?? null;
   }
 
-  /** Wiederkehrende Fehler als Lernmuster (nur lokal, ohne Benutzerkonto). */
+  /**
+   * Wiederkehrende Fehler als Lernmuster (nur lokal, ohne Benutzerkonto). Der Stand wird jedes Mal frisch gelesen,
+   * damit gleichzeitig geöffnete Fenster ihre Zählungen nicht gegenseitig überschreiben.
+   */
   async function recordStats(a: MoveAnalysis) {
-    const current: LearningStats = stats.value ?? (await localGameStorage.loadLearningStats()) ?? {
+    const current: LearningStats = (await localGameStorage.loadLearningStats()) ?? stats.value ?? {
       id: 'stats', analysedMoves: 0, classifications: {}, ruleCounts: {}, updatedAt: new Date().toISOString(),
     };
     const next: LearningStats = JSON.parse(JSON.stringify(current)) as LearningStats;

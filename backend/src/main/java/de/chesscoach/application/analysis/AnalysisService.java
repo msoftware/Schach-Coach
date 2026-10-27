@@ -30,7 +30,9 @@ public class AnalysisService {
     private final EngineRegistry engines;
     private final MoveAnalyzer analyzer;
     private final ThreadPoolExecutor executor;
-    private volatile AnalysisEntry running;
+    /** Schützt {@link #running}, damit ein Abbruch nie die Suche einer anderen Partie stoppt. */
+    private final Object runningLock = new Object();
+    private AnalysisEntry running;
 
     public AnalysisService(EngineRegistry engines, MoveAnalyzer analyzer, AnalysisProperties properties) {
         this.engines = engines;
@@ -53,7 +55,9 @@ public class AnalysisService {
         if (entry.token().isCancelled()) {
             return;
         }
-        running = entry;
+        synchronized (runningLock) {
+            running = entry;
+        }
         entry.running();
         try {
             MoveAnalyzer.Request request = new MoveAnalyzer.Request(entry.move().fenBefore(), entry.move().uci(),
@@ -76,15 +80,23 @@ public class AnalysisService {
             log.error("Analyse fehlgeschlagen", e);
             entry.fail("Bei der Analyse ist ein interner Fehler aufgetreten.");
         } finally {
-            running = null;
+            synchronized (runningLock) {
+                running = null;
+            }
         }
     }
 
-    /** Verwirft eine Analyse; läuft sie gerade, wird die Engine-Suche gestoppt. */
+    /**
+     * Verwirft eine Analyse; läuft sie gerade, wird die Engine-Suche gestoppt. Prüfung und Stopp erfolgen unter
+     * derselben Sperre wie der Wechsel der laufenden Analyse, damit nie die Analyse einer anderen Partie (eines
+     * anderen Spielers) abgebrochen wird.
+     */
     public void cancel(AnalysisEntry entry) {
         entry.cancel();
-        if (running == entry) {
-            engines.analysis().stopAnalysis();
+        synchronized (runningLock) {
+            if (running == entry) {
+                engines.analysis().stopAnalysis();
+            }
         }
     }
 

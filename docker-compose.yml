@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     environment:
       CHESSCOACH_API_ALLOWED_ORIGINS: http://localhost:8081
+      # Echte Client-IP aus X-Forwarded-For übernehmen (nur hinter nginx; der Port ist nicht veröffentlicht).
+      SERVER_FORWARD_HEADERS_STRATEGY: native
     expose:
       - "8080"
     mem_limit: 2g

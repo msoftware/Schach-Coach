@@ -11,27 +11,41 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Begrenzt rechenintensive Anfragen (Züge, Computerzüge, Analysen, Tipps, Partiestart) je Client mit einem
- * einfachen Token-Bucket. Schützt die lokale Engine vor übermäßigen Analyseanforderungen (Requirements 9.1/11.4).
+ * Begrenzt rechenintensive Anfragen (Züge, Computerzüge, Analysen, Tipps, Partiestart) mit einfachen Token-Buckets.
+ * Schützt die lokale Engine vor übermäßigen Analyseanforderungen (Requirements 9.1/11.4).
+ * <p>
+ * Das eigentliche Limit gilt je Partie, damit sich mehrere Personen hinter derselben IP-Adresse (gleicher Rechner,
+ * Schul- oder Firmennetz) nicht gegenseitig ausbremsen. Ein zusätzliches, großzügigeres Limit je IP-Adresse
+ * verhindert, dass ein einzelner Client es durch viele neue Partien umgeht.
  */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final int perMinute;
+    static final int MAX_BUCKETS = 10_000;
+    static final String OVERFLOW_CLIENT = "overflow";
+    private static final Pattern GAME_PATH = Pattern.compile("^/api/games/([0-9a-f]{32})(/.*)?$");
+
+    private final int perGame;
+    private final int perClient;
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     public RateLimitFilter(ApiProperties properties) {
-        this.perMinute = properties.rateLimitPerMinute();
+        this.perGame = properties.rateLimitPerMinute();
+        this.perClient = properties.rateLimitPerMinutePerClient();
     }
 
     private static final class Bucket {
+        private final int perMinute;
         private double tokens;
         private long lastRefill;
 
-        Bucket(double tokens) {
-            this.tokens = tokens;
+        Bucket(int perMinute) {
+            this.perMinute = perMinute;
+            this.tokens = perMinute;
             this.lastRefill = System.nanoTime();
         }
     }
@@ -48,7 +62,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        if (perMinute > 0 && !tryAcquire(request.getRemoteAddr())) {
+        Matcher game = GAME_PATH.matcher(request.getRequestURI());
+        boolean allowed = (perGame <= 0 || !game.matches() || tryAcquire("game:" + game.group(1), perGame))
+                && (perClient <= 0 || tryAcquire("ip:" + request.getRemoteAddr(), perClient));
+        if (!allowed) {
             response.setStatus(ErrorCode.RATE_LIMITED.status());
             response.setContentType("application/problem+json");
             response.setCharacterEncoding("UTF-8");
@@ -61,15 +78,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    boolean tryAcquire(String client) {
-        if (buckets.size() > 10_000) {
-            buckets.clear();
+    boolean tryAcquire(String key, int perMinute) {
+        if (buckets.size() > MAX_BUCKETS && !buckets.containsKey(key)) {
+            evictRefilledBuckets();
+            if (buckets.size() > MAX_BUCKETS) {
+                // Sehr viele gleichzeitig aktive Schlüssel: neue teilen sich einen Bucket, statt alle Limits zurückzusetzen.
+                key = OVERFLOW_CLIENT;
+            }
         }
-        Bucket bucket = buckets.computeIfAbsent(client, k -> new Bucket(perMinute));
+        Bucket bucket = buckets.computeIfAbsent(key, k -> new Bucket(perMinute));
         synchronized (bucket) {
             long now = System.nanoTime();
-            double refill = (now - bucket.lastRefill) / 60_000_000_000.0 * perMinute;
-            bucket.tokens = Math.min(perMinute, bucket.tokens + refill);
+            double refill = (now - bucket.lastRefill) / 60_000_000_000.0 * bucket.perMinute;
+            bucket.tokens = Math.min(bucket.perMinute, bucket.tokens + refill);
             bucket.lastRefill = now;
             if (bucket.tokens >= 1) {
                 bucket.tokens -= 1;
@@ -77,5 +98,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
             }
             return false;
         }
+    }
+
+    /** Entfernt Buckets, die seit mindestens einer Minute unbenutzt und damit ohnehin wieder voll sind. */
+    private void evictRefilledBuckets() {
+        long threshold = System.nanoTime() - 60_000_000_000L;
+        buckets.values().removeIf(bucket -> {
+            synchronized (bucket) {
+                return bucket.lastRefill - threshold <= 0;
+            }
+        });
     }
 }

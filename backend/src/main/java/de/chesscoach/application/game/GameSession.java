@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -24,6 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * unveränderliche {@link GameSnapshot}s und {@link MoveRecord}s gegeben.
  */
 public final class GameSession {
+
+    private static final AtomicLong ACCESS_COUNTER = new AtomicLong();
 
     private final String gameId;
     private final Instant createdAt = Instant.now();
@@ -43,6 +46,7 @@ public final class GameSession {
     private int settingsVersion;
     private Instant updatedAt = createdAt;
     private volatile Instant lastAccess = createdAt;
+    private volatile long accessSequence = ACCESS_COUNTER.incrementAndGet();
     private CompletableFuture<MoveRecord> pendingEngineMove;
     private int pendingEngineVersion = -1;
 
@@ -67,8 +71,14 @@ public final class GameSession {
         return lastAccess;
     }
 
+    /** Fortlaufende Zugriffsnummer: eindeutige Reihenfolge für die Verdrängung, auch bei gleichen Zeitstempeln. */
+    long accessSequence() {
+        return accessSequence;
+    }
+
     void touch() {
         lastAccess = Instant.now();
+        accessSequence = ACCESS_COUNTER.incrementAndGet();
     }
 
     String initialFen() {

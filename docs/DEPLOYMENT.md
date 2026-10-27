@@ -59,11 +59,20 @@ Alle Werte lassen sich per Umgebungsvariable überschreiben (z. B. `CHESSCOACH_A
 | `chesscoach.coaching.classification.*` | Schwellen der Qualitätsklassen | 10/25/60/120/250 cp |
 | `chesscoach.coaching.disabled-rules` | deaktivierte Regel-IDs | leer |
 | `chesscoach.api.allowed-origins` | CORS-Ursprünge | `http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:8080` |
-| `chesscoach.api.rate-limit-per-minute` | rechenintensive Anfragen je Client | 120 |
-| `chesscoach.api.max-games` / `game-idle-timeout` | Partien im Arbeitsspeicher | 500 / 6 h |
+| `chesscoach.api.rate-limit-per-minute` | rechenintensive Anfragen je Partie | 120 |
+| `chesscoach.api.rate-limit-per-minute-per-client` | rechenintensive Anfragen je IP-Adresse (mehrere Personen können sich eine Adresse teilen) | 600 |
+| `chesscoach.api.max-games` / `game-idle-timeout` | Partien im Arbeitsspeicher; bei Erreichen der Höchstzahl wird die am längsten unbenutzte Partie verworfen (das Frontend stellt sie bei Bedarf wieder her) | 500 / 6 h |
+| `chesscoach.api.empty-game-idle-timeout` | Partien ohne Zug werden früher verworfen | 30 min |
+| `server.forward-headers-strategy` | `native` hinter einem Reverse-Proxy (in `docker-compose.yml` gesetzt), sonst leer | – |
 
 ## Betriebshinweise
 
+- Hinter einem eigenen Reverse-Proxy `server.forward-headers-strategy=native` setzen und den Proxy
+  `X-Forwarded-For` mit der echten Client-Adresse **überschreiben** lassen (nicht anhängen), sonst teilen sich alle
+  Nutzer ein Rate-Limit bzw. Clients können ihre Adresse fälschen. Den Backend-Port nicht direkt veröffentlichen.
+- Mehrere Personen und mehrere Browserfenster können gleichzeitig spielen; jedes Fenster hat eine eigene Partie
+  (eigener Slot im Browser-Speicher). Alle Partien teilen sich die beiden Engine-Prozesse: Computerzüge und Analysen
+  werden nacheinander berechnet, bei vielen gleichzeitigen Spielern verlängern sich daher die Wartezeiten.
 - Partien liegen nur im Arbeitsspeicher; nach einem Neustart des Backends stellt das Frontend die Partie aus dem
   Browser-Speicher wieder her.
 - Gesundheitsprüfung: `GET /api/health` (`UP`, `DEGRADED` bei nicht verfügbarer Engine).

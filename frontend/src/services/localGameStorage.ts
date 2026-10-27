@@ -2,15 +2,17 @@
  * Lokale Speicherung ausschließlich im Browser (IndexedDB). Es gibt keine serverseitige Partiespeicherung.
  * Jede Schreiboperation meldet zurück, ob sie wirklich erfolgreich war, damit die UI nie eine
  * erfolgreiche Sicherung behauptet, die nicht stattgefunden hat (FR-07).
+ * Die laufende Partie liegt je Browserfenster in einem eigenen Slot (siehe windowSlot.ts), damit sich
+ * gleichzeitig geöffnete Fenster nicht gegenseitig überschreiben.
  */
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { AnalysisProfile, Color, Difficulty, GameStatus } from '@/models/game';
 import type { MoveAnalysis } from '@/models/analysis';
 import type { LearningStats } from '@/models/coaching';
+import { createWindowSlot, isSlotId } from './windowSlot';
 
 export const DB_NAME = 'chess-coach';
 export const DB_VERSION = 1;
-export const CURRENT_GAME_ID = 'current';
 
 export interface StoredGame {
   id: string;
@@ -79,6 +81,26 @@ export function analysisCacheKey(fenBefore: string, uci: string, engineVersion: 
   return [fenBefore, uci, engineVersion, profile, depthLevel, rulesVersion].join('|');
 }
 
+function sessionStorageOrNull(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+const windowSlot = createWindowSlot({
+  session: sessionStorageOrNull(),
+  async listSlots() {
+    const all = await (await db()).getAll('games');
+    return all.filter((g) => isSlotId(g.id)).map((g) => ({ id: g.id, savedAt: g.savedAt, finished: g.finished }));
+  },
+  async deleteSlots(ids) {
+    const tx = (await db()).transaction('games', 'readwrite');
+    await Promise.all([...ids.map((id) => tx.store.delete(id)), tx.done]);
+  },
+});
+
 export const localGameStorage = {
   async isAvailable(): Promise<boolean> {
     try {
@@ -92,7 +114,7 @@ export const localGameStorage = {
   async saveCurrentGame(game: Omit<StoredGame, 'id'>): Promise<SaveResult> {
     try {
       const d = await db();
-      await d.put('games', { ...game, id: CURRENT_GAME_ID });
+      await d.put('games', { ...game, id: await windowSlot.current() });
       return { ok: true };
     } catch (e) {
       return failure(e);
@@ -101,7 +123,7 @@ export const localGameStorage = {
 
   async loadCurrentGame(): Promise<StoredGame | undefined> {
     try {
-      return await (await db()).get('games', CURRENT_GAME_ID);
+      return await (await db()).get('games', await windowSlot.current());
     } catch {
       return undefined;
     }
@@ -109,7 +131,7 @@ export const localGameStorage = {
 
   async clearCurrentGame(): Promise<SaveResult> {
     try {
-      await (await db()).delete('games', CURRENT_GAME_ID);
+      await (await db()).delete('games', await windowSlot.current());
       return { ok: true };
     } catch (e) {
       return failure(e);
@@ -129,7 +151,7 @@ export const localGameStorage = {
   async listArchivedGames(): Promise<StoredGame[]> {
     try {
       const all = await (await db()).getAll('games');
-      return all.filter((g) => g.id !== CURRENT_GAME_ID).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+      return all.filter((g) => !isSlotId(g.id)).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
     } catch {
       return [];
     }
