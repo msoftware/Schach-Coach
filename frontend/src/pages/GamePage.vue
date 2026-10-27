@@ -7,11 +7,13 @@ import GameControls from '@/components/GameControls.vue';
 import EngineStatus from '@/components/EngineStatus.vue';
 import CoachingSummary from '@/components/CoachingSummary.vue';
 import CoachingDetails from '@/components/CoachingDetails.vue';
+import EvaluationBar from '@/components/EvaluationBar.vue';
 import VariationViewer from '@/components/VariationViewer.vue';
 import SettingsDialog from '@/components/SettingsDialog.vue';
 import { useGameStore } from '@/stores/gameStore';
 import { useAnalysisStore } from '@/stores/analysisStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useEvaluationStore } from '@/stores/evaluationStore';
 import { gameApi } from '@/services/gameApi';
 import { DIFFICULTY_LABELS } from '@/models/game';
 
@@ -19,6 +21,7 @@ const $q = useQuasar();
 const game = useGameStore();
 const analysis = useAnalysisStore();
 const settings = useSettingsStore();
+const evaluation = useEvaluationStore();
 
 const showSettings = ref(false);
 const showDetails = ref(settings.autoOpenDetails);
@@ -28,6 +31,11 @@ const engineName = ref<string | undefined>();
 const engineAvailable = ref(true);
 
 const g = computed(() => game.game);
+
+// Bewertungsleiste nach jedem Zug (jede neue Positionsversion: Benutzer- und Computerzug, Undo, Redo, neue Partie).
+watch(() => [g.value?.gameId, g.value?.positionVersion] as const, ([gameId, version]) => {
+  if (gameId && version !== undefined) void evaluation.refresh(gameId, version);
+}, { immediate: true });
 const orientation = computed(() => {
   const base = g.value?.playerColor ?? 'WHITE';
   return flipped.value ? (base === 'WHITE' ? 'BLACK' : 'WHITE') : base;
@@ -166,6 +174,8 @@ function onCandidate(uci: string) {
         <CoachingSummary :analysis="analysis.selected" :error="analysis.selectedPly != null ? analysis.errors[analysis.selectedPly] : null"
                          @details="showDetails = !showDetails"
                          @retry="analysis.selectedPly != null && analysis.requestAgain(analysis.selectedPly, true)" />
+        <EvaluationBar class="q-mt-sm" :evaluation="evaluation.evaluation" :loading="evaluation.loading" :failed="evaluation.failed"
+                       :player-color="g?.playerColor ?? 'WHITE'" />
         <CoachingDetails v-if="showDetails && analysis.selected?.status === 'COMPLETED'" class="q-mt-sm" :analysis="analysis.selected"
                          :selected-candidate="analysis.variation?.uci ?? null" @candidate="onCandidate"
                          @highlight="highlighted = $event"

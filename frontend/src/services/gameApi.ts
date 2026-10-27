@@ -1,6 +1,6 @@
 import { request } from './apiClient';
-import { validateEngineStatus, validateGame, validateHint, validateMoveResult } from './validate';
-import type { AnalysisProfile, Color, Difficulty, EngineStatus, Game, Hint, MoveResult, SettingsOptions } from '@/models/game';
+import { validateEngineStatus, validateEvaluation, validateGame, validateHint, validateMoveResult } from './validate';
+import type { AnalysisProfile, Color, Difficulty, EngineStatus, Evaluation, Game, Hint, MoveResult, SettingsOptions } from '@/models/game';
 
 export interface CreateGameOptions {
   playerColor: Color;
@@ -26,6 +26,7 @@ export const gameApi = {
   resign: (gameId: string, expectedPositionVersion: number): Promise<Game> =>
     request('POST', `/games/${gameId}/resign`, { expectedPositionVersion }, validateGame),
   hint: (gameId: string): Promise<Hint> => request('POST', `/games/${gameId}/hint`, undefined, validateHint),
+  evaluate: (gameId: string): Promise<Evaluation> => request('POST', `/games/${gameId}/evaluation`, undefined, validateEvaluation),
   engineStatus: (): Promise<EngineStatus> => request('GET', '/engine/status', undefined, validateEngineStatus),
   settingsOptions: (): Promise<SettingsOptions> => request('GET', '/settings/options'),
   updateSettings: (gameId: string, difficulty: Difficulty, analysisProfile: AnalysisProfile) =>

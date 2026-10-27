@@ -1,10 +1,12 @@
 package de.chesscoach.api;
 
+import de.chesscoach.application.game.EvaluationService;
 import de.chesscoach.application.game.MoveService;
 import de.chesscoach.dto.request.MoveRequest;
 import de.chesscoach.dto.request.VersionRequest;
 import de.chesscoach.dto.response.GameResponse;
 import de.chesscoach.dto.response.MoveResponse;
+import de.chesscoach.dto.response.ScoreDto;
 import de.chesscoach.dto.response.StatusResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,14 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/games/{gameId}")
-@Tag(name = "Züge", description = "Benutzerzüge, Computerzüge, Wiederholen und Tipps")
+@Tag(name = "Züge", description = "Benutzerzüge, Computerzüge, Wiederholen, Tipps und Stellungsbewertung")
 public class MoveController {
 
     private final MoveService moves;
+    private final EvaluationService evaluations;
     private final ApiMapper mapper;
 
-    public MoveController(MoveService moves, ApiMapper mapper) {
+    public MoveController(MoveService moves, EvaluationService evaluations, ApiMapper mapper) {
         this.moves = moves;
+        this.evaluations = evaluations;
         this.mapper = mapper;
     }
 
@@ -54,5 +58,15 @@ public class MoveController {
         MoveService.Hint hint = moves.hint(gameId);
         return new StatusResponses.HintResponse(hint.uci(), hint.san(), hint.from(), hint.pieceName(), hint.score(), hint.depth(),
                 "ENGINE");
+    }
+
+    @PostMapping("/evaluation")
+    @Operation(summary = "Bewertung der aktuellen Stellung (Bewertungsleiste)",
+            description = "Bewertet die aktuelle Stellung mit festen Suchgrenzen, unabhängig von der Spielstärke, immer aus "
+                    + "Sicht von Weiß. whiteShare (0..1) gibt an, wie weit die Leiste zu Weiß ausschlägt.")
+    public StatusResponses.EvaluationResponse evaluation(@PathVariable String gameId) {
+        EvaluationService.Evaluation e = evaluations.evaluate(gameId);
+        return new StatusResponses.EvaluationResponse(e.gameId(), e.positionVersion(), e.fen(), ScoreDto.ofWhite(e.whiteScore()),
+                e.whiteShare(), e.display(), e.depth(), e.finished());
     }
 }

@@ -27,6 +27,7 @@ Konventionen:
 | POST | `/api/games/{gameId}/restart` | Partie neu starten |
 | POST | `/api/games/{gameId}/resign` | Aufgeben (Ergänzung, FR-06) |
 | POST | `/api/games/{gameId}/hint` | Tipp: bester Zug laut Engine (Ergänzung) |
+| POST | `/api/games/{gameId}/evaluation` | Bewertung der aktuellen Stellung aus Sicht von Weiß für die Bewertungsleiste: `score` (CP/MATE, `perspective: "WHITE"`, bei beendeter Partie `null`), `whiteShare` (0 = Schwarz gewinnt … 1 = Weiß gewinnt), `display`, `depth`, `finished`. Feste Suchgrenze `chesscoach.analysis.evaluation-nodes` (Standard 40 000), unabhängig von der Spielstärke; Ergebnisse je Stellung zwischengespeichert (Ergänzung) |
 | GET | `/api/games/{gameId}/analysis/{ply}` | Analyse eines Benutzerzuges |
 | POST | `/api/games/{gameId}/analysis/{ply}[?force=true]` | Analyse anfordern/aktualisieren (202) |
 | POST | `/api/games/{gameId}/analysis/{ply}/variations` | Kandidaten und Varianten vertiefen (202) |

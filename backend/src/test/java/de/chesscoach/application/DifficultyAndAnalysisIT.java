@@ -88,7 +88,7 @@ class DifficultyAndAnalysisIT {
     void analysisOfBlunderAndGoodMove() {
         MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
                 new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
-                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200), CoachingProperties.defaults());
+                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000), CoachingProperties.defaults());
         String fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
         long start = System.currentTimeMillis();
         MoveAnalysis blunder = analyzer.analyze(engine, new MoveAnalyzer.Request(fen, "f3e5", null, null, AnalysisProfile.NORMAL, 1),
@@ -117,7 +117,7 @@ class DifficultyAndAnalysisIT {
     void analysisCanBeCancelled() {
         MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
                 new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
-                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200), CoachingProperties.defaults());
+                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000), CoachingProperties.defaults());
         CancellationToken token = new CancellationToken();
         token.cancel();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> analyzer.analyze(engine,

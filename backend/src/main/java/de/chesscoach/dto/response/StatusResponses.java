@@ -38,6 +38,17 @@ public final class StatusResponses {
     public record HintResponse(String uci, String san, String from, String pieceName, String score, int depth, String source) {
     }
 
+    /**
+     * Bewertung der aktuellen Stellung für die Bewertungsleiste, immer aus Sicht von Weiß.
+     *
+     * @param score      Bewertung (CP oder MATE, positiv = Weiß steht besser); {@code null} bei beendeter Partie
+     * @param whiteShare Anteil von Weiß an der Leiste (0 = Schwarz gewinnt, 0.5 = ausgeglichen, 1 = Weiß gewinnt)
+     * @param display    Anzeige, z. B. "+0.35", "M3", "-M2" oder bei beendeter Partie das Ergebnis
+     */
+    public record EvaluationResponse(String gameId, int positionVersion, String fen, ScoreDto score, double whiteShare,
+                                     String display, int depth, boolean finished) {
+    }
+
     public record RuleDto(String id, String title, String category, String version, String purpose, List<String> inputFeatures,
                           String learningPrinciple, boolean enabled) {
     }

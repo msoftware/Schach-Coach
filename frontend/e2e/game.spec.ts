@@ -169,3 +169,52 @@ test('Zwei Personen spielen gleichzeitig in getrennten Browsern', async ({ page,
 
   await otherPerson.close();
 });
+
+test('Bewertungsleiste unter dem Zug-Coach folgt jedem Zug', async ({ page }) => {
+  await freshStart(page);
+  const bar = page.getByTestId('evaluation-bar');
+  const track = page.getByTestId('evaluation-track');
+  await expect(bar).toBeVisible();
+  await expect(page.getByTestId('evaluation-text')).toContainText(/Ausgeglichen|liegt/);
+  const versions: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().endsWith('/evaluation')) versions.push(r.url());
+  });
+
+  // Benutzerzug und Computerantwort: Die Leiste wird nach beiden Zügen neu bewertet.
+  await playUserMove(page, 'e2', 'e4');
+  await expect(page.getByTestId('move-2')).toBeVisible({ timeout: 90_000 });
+  await expect.poll(() => versions.length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+  const now = Number(await track.getAttribute('aria-valuenow'));
+  expect(now).toBeGreaterThan(20);
+  expect(now).toBeLessThan(80);
+});
+
+test('Bewertungsleiste zeigt deutlichen Vorteil und Partieende', async ({ page }) => {
+  await freshStart(page);
+  // Weiß (Benutzer) hat eine Dame mehr; danach Matt in einem Zug mit Dh5xf7.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const req = indexedDB.open('chess-coach', 1);
+      req.onsuccess = () => resolve(req.result);
+    });
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction('games', 'readwrite');
+      tx.objectStore('games').put({
+        id: sessionStorage.getItem('chess-coach-window-slot'), gameId: 'e2e', initialFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        moves: ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6'], sanMoves: [],
+        fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', playerColor: 'WHITE',
+        difficulty: 'BEGINNER', analysisProfile: 'FAST', status: 'IN_PROGRESS', result: '*', savedAt: new Date().toISOString(), finished: false,
+      });
+      tx.oncomplete = () => resolve();
+    });
+    db.close();
+  });
+  await page.reload();
+  await expect(page.getByTestId('evaluation-text')).toContainText('Weiß setzt in 1 Zug matt');
+  await expect(page.getByTestId('evaluation-track')).toHaveAttribute('aria-valuenow', '100');
+  await expect(page.getByTestId('evaluation-bar')).toContainText('Du liegst vorne.');
+
+  await playUserMove(page, 'h5', 'f7');
+  await expect(page.getByTestId('evaluation-text')).toContainText('Partie beendet: Weiß hat gewonnen (1-0)');
+});

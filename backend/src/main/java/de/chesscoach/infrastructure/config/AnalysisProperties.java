@@ -17,6 +17,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param maxLinePlies         maximale Länge der angezeigten Varianten
  * @param maxQueuedAnalyses    maximale Anzahl wartender Analysen
  * @param stalenessCheckMillis Intervall, in dem laufende Analysen auf Veraltung geprüft werden
+ * @param evaluationNodes      Knoten für die Stellungsbewertung der Bewertungsleiste (unabhängig vom Profil)
  */
 @ConfigurationProperties("chesscoach.analysis")
 public record AnalysisProperties(@DefaultValue("150000") long rootNodes,
@@ -28,5 +29,6 @@ public record AnalysisProperties(@DefaultValue("150000") long rootNodes,
                                  @DefaultValue("9") int minReliableDepth,
                                  @DefaultValue("12") int maxLinePlies,
                                  @DefaultValue("32") int maxQueuedAnalyses,
-                                 @DefaultValue("200") long stalenessCheckMillis) {
+                                 @DefaultValue("200") long stalenessCheckMillis,
+                                 @DefaultValue("40000") long evaluationNodes) {
 }

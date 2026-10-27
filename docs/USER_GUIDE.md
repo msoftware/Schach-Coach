@@ -44,6 +44,12 @@ Nach jedem eigenen Zug startet automatisch die Analyse. Die **Zusammenfassung** 
   (z. B. „etwa 2½ Bauern“);
 - einen Hinweis, wenn sich der Computer nicht sicher ist („vorläufig“).
 
+Unter der Zusammenfassung zeigt die **Bewertungsleiste** („Wer liegt vorne?“), wie die Partie gerade steht: links Weiß
+(helle Fläche), rechts Schwarz (dunkle Fläche). Der blaue Schieber wandert zu der Seite, die besser steht; die rote
+Markierung in der Mitte bedeutet „ausgeglichen“. Darunter steht die Lage in Worten, z. B. „Weiß liegt leicht vorne
+(+0.80)“ oder „Schwarz setzt in 3 Zügen matt“, und ob du oder der Computer vorne liegt. Die Leiste wird nach jedem Zug
+aktualisiert – nach deinem und nach dem des Computers, ebenso nach Zurücknehmen und Wiederherstellen.
+
 „**Details ansehen**“ öffnet:
 
 - **Erklärung:** Antworten auf sieben Fragen – Was war gut, was war schlecht? Was passiert durch deinen Zug? Wie kann

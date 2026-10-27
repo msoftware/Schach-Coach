@@ -59,6 +59,7 @@ chesscoach:
     min-reliable-depth: 9
     max-line-plies: 12
     max-queued-analyses: 32
+    evaluation-nodes: 40000
   difficulty:
     random-seed: 0
     levels:

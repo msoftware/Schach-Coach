@@ -93,6 +93,20 @@ export interface EngineStatus {
   analysisQueue: number;
 }
 
+/** Bewertung der aktuellen Stellung für die Bewertungsleiste, immer aus Sicht von Weiß. */
+export interface Evaluation {
+  gameId: string;
+  positionVersion: number;
+  fen: string;
+  /** null bei beendeter Partie */
+  score: { type: 'CP' | 'MATE'; value: number; display: string; perspective: 'WHITE' } | null;
+  /** 0 = Schwarz gewinnt, 0.5 = ausgeglichen, 1 = Weiß gewinnt */
+  whiteShare: number;
+  display: string;
+  depth: number;
+  finished: boolean;
+}
+
 export interface Hint {
   uci: string;
   san: string;

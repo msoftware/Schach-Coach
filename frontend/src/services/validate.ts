@@ -2,7 +2,7 @@
  * Zentrale Validierung der API-Antworten (Requirements 10.2). Pflichtfelder werden geprüft; optionale
  * Felder werden auf sichere Standardwerte normalisiert, damit die UI keine fehlenden Felder voraussetzt.
  */
-import type { Game, MoveResult, EngineStatus, Hint } from '@/models/game';
+import type { Evaluation, Game, MoveResult, EngineStatus, Hint } from '@/models/game';
 import type { MoveAnalysis } from '@/models/analysis';
 
 export class ValidationError extends Error {
@@ -102,4 +102,21 @@ export function validateHint(value: unknown): Hint {
   str(o, 'uci');
   str(o, 'san');
   return o as unknown as Hint;
+}
+
+export function validateEvaluation(value: unknown): Evaluation {
+  const o = obj(value, 'Bewertung');
+  str(o, 'gameId');
+  num(o, 'positionVersion');
+  const share = num(o, 'whiteShare');
+  if (share < 0 || share > 1) throw new ValidationError('Feld "whiteShare" liegt außerhalb von 0..1');
+  if (o.score != null) {
+    const score = obj(o.score, 'Bewertung');
+    str(score, 'type');
+    num(score, 'value');
+  }
+  o.score = o.score ?? null;
+  o.display = typeof o.display === 'string' ? o.display : '';
+  o.finished = o.finished === true;
+  return o as unknown as Evaluation;
 }
