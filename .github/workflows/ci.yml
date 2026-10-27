@@ -74,7 +74,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium firefox
+          npx playwright install --with-deps chromium firefox webkit
           npx playwright test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()

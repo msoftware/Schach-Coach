@@ -31,6 +31,18 @@ Klammern die übliche Kurznotation (z. B. `Nf3`) und bei deinen Zügen die Bewer
 Du kannst jeden Zug anklicken oder mit den Pfeilen blättern; das Brett zeigt dann die damalige
 Stellung (nur Ansicht). „Zur aktuellen Stellung“ (⏭) kehrt zum Spiel zurück.
 
+## Auf dem Handy
+
+- **Ziehen:** Figur antippen, dann das Zielfeld antippen – oder die Figur mit dem Finger ziehen (sie wird dabei
+  vergrößert über dem Finger angezeigt). Wischen über leere Felder scrollt die Seite.
+- **Aktionsleiste unten** (im Daumenbereich): Neu, Zurück, Vor, Tipp und „Mehr“ (Brett drehen, Einstellungen,
+  Aufgeben).
+- **Direkt unter dem Brett** stehen die Bewertungsleiste und eine Kurzfassung des Coachings (Qualitätsklasse und
+  Begründung). Antippen der Kurzfassung springt zur ausführlichen Analyse; der runde Pfeil-Knopf führt zurück zum Brett.
+- **Quer gehalten** stehen Brett und Coaching nebeneinander.
+- **Als App:** Über „Zum Startbildschirm hinzufügen“ im Browsermenü lässt sich der Schach-Coach wie eine App starten
+  (ohne Adressleiste).
+
 ## Das Coaching
 
 Nach jedem eigenen Zug startet automatisch die Analyse. Die **Zusammenfassung** zeigt:

@@ -37,7 +37,7 @@ Danach <http://localhost:5173> öffnen.
 ```bash
 cd backend  && ./gradlew check checkLicense      # Unit-, Integrations- und Engine-Tests, Coverage-Regel, Lizenzprüfung
 cd frontend && npm run typecheck && npm test      # Typecheck, Vitest
-cd frontend && npx playwright install chromium firefox && npx playwright test   # End-to-End (benötigt gebautes Backend-JAR)
+cd frontend && npx playwright install chromium firefox webkit && npx playwright test   # End-to-End (benötigt gebautes Backend-JAR)
 ```
 
 ## Dokumentation

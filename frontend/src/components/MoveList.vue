@@ -48,7 +48,7 @@ function badge(m: MoveRecord) {
 
 <template>
   <section class="move-list" aria-label="Zugliste">
-    <div class="row items-center q-mb-xs">
+    <div class="row items-center q-mb-xs nav-row">
       <div class="text-subtitle2 col">Züge</div>
       <q-btn flat dense round icon="first_page" aria-label="Zum Anfang" :disable="moves.length === 0" @click="emit('select', 0)" />
       <q-btn flat dense round icon="chevron_left" aria-label="Einen Zug zurück" :disable="activePly === 0"
@@ -125,4 +125,9 @@ function badge(m: MoveRecord) {
 .move-btn.active { background: #1d4ed8; color: #fff; }
 .move-btn.active .num, .move-btn.active .san, .move-btn.active .badge span { color: #fff !important; }
 .move-btn:focus-visible { outline: 3px solid #f59e0b; outline-offset: -3px; }
+/* Handy: ausreichend große Tippflächen (mind. 44 px). */
+@media (max-width: 1023px) {
+  .move-btn { padding: 10px; min-height: 44px; -webkit-tap-highlight-color: transparent; }
+  .nav-row :deep(.q-btn) { min-width: 44px; min-height: 44px; }
+}
 </style>

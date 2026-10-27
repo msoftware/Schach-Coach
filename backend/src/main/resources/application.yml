@@ -69,7 +69,8 @@ chesscoach:
       STRONG: { nodes: 250000 }
       MAXIMUM: { movetime-millis: 3000 }
   coaching:
-    rules-version: 1.0.0
+    # Bei jeder Änderung an Regeln oder Erklärungstexten erhöhen: macht den Analyse-Cache im Browser ungültig.
+    rules-version: 1.1.0
     disabled-rules: []
     classification:
       best-max-loss: 10

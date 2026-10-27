@@ -1,6 +1,18 @@
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background: #f5f1ea;
   color: #111827;
+  /* Kein versehentliches „Neu laden“ durch Herunterziehen am Seitenanfang. */
+  overscroll-behavior-y: contain;
+}
+
+/* Kein Doppeltipp-Zoom auf Bedienelementen: Antippen reagiert sofort. */
+button, a, .q-btn, .q-item {
+  touch-action: manipulation;
 }
 
 /* Sichtbarer Tastaturfokus für alle Bedienelemente (NFR-06). */

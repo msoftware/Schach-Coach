@@ -21,6 +21,8 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /responsive/ },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: /responsive/ },
     { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /responsive/ },
+    // iPhone (WebKit/Safari): Touch verhält sich dort anders als in Chromium, z. B. beim Antippen von Figuren.
+    { name: 'iphone', use: { ...devices['iPhone 13'] }, testMatch: /responsive/ },
   ],
   webServer: [
     {

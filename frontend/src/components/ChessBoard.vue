@@ -33,7 +33,7 @@ const boardEl = ref<HTMLElement | null>(null);
 const selected = ref<string | null>(null);
 const focused = ref<string | null>(null);
 const promotion = ref<{ from: string; to: string; options: LegalMove[] } | null>(null);
-const drag = ref<{ from: string; piece: PieceCode; x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null);
+const drag = ref<{ from: string; piece: PieceCode; x: number; y: number; startX: number; startY: number; moved: boolean; touch: boolean } | null>(null);
 
 const board = computed(() => parseBoard(props.fen));
 const squares = computed(() => orderedSquares(props.orientation));
@@ -53,6 +53,11 @@ function canSelect(square: string): boolean {
   return props.interactive && (movesFrom.value[square]?.length ?? 0) > 0;
 }
 
+/** Kurzes haptisches Feedback auf Geräten mit Vibrationsmotor (z. B. Android-Handys). */
+function haptic() {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') navigator.vibrate(12);
+}
+
 function tryMove(from: string, to: string): boolean {
   const candidates = (movesFrom.value[from] ?? []).filter((m) => m.to === to);
   if (candidates.length === 0) return false;
@@ -61,6 +66,7 @@ function tryMove(from: string, to: string): boolean {
     return true;
   }
   selected.value = null;
+  haptic();
   emit('move', candidates[0].uci);
   return true;
 }
@@ -68,6 +74,7 @@ function tryMove(from: string, to: string): boolean {
 function choosePromotion(move: LegalMove) {
   promotion.value = null;
   selected.value = null;
+  haptic();
   emit('move', move.uci);
 }
 
@@ -99,8 +106,13 @@ function onPointerDown(event: PointerEvent, square: string) {
   if (!piece || !canSelect(square)) {
     return;
   }
-  event.preventDefault();
-  drag.value = { from: square, piece, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
+  // Nur bei der Maus (verhindert Textauswahl). Bei Touch unterdrückt Safari/iOS sonst den folgenden Klick, sodass
+  // Antippen einer Figur nichts auswählt; Scrollen verhindert dort bereits touch-action: none.
+  if (event.pointerType === 'mouse') event.preventDefault();
+  drag.value = {
+    from: square, piece, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false,
+    touch: event.pointerType === 'touch',
+  };
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp, { once: true });
 }
@@ -168,8 +180,11 @@ function squareLabel(square: string): string {
 
 const ghostStyle = computed(() => {
   if (!drag.value || !drag.value.moved || !boardEl.value) return null;
-  const size = boardEl.value.getBoundingClientRect().width / 8;
-  return { width: `${size}px`, height: `${size}px`, left: `${drag.value.x - size / 2}px`, top: `${drag.value.y - size / 2}px` };
+  const square = boardEl.value.getBoundingClientRect().width / 8;
+  // Mit dem Finger: Figur vergrößert und oberhalb des Fingers zeigen, damit sie nicht verdeckt ist.
+  const size = drag.value.touch ? square * 1.5 : square;
+  const lift = drag.value.touch ? size * 0.9 : size / 2;
+  return { width: `${size}px`, height: `${size}px`, left: `${drag.value.x - size / 2}px`, top: `${drag.value.y - lift}px` };
 });
 
 const promotionColor = computed(() => (props.fen.split(' ')[1] === 'b' ? 'b' : 'w'));
@@ -259,7 +274,8 @@ defineExpose({ select: onSquareActivate, FILES });
 <style scoped>
 .board-wrapper {
   width: 100%;
-  max-width: min(92vw, 640px, calc(100vh - 170px));
+  /* Die Seite kann die Brettgröße über --board-max an das Layout (z. B. Handy hoch/quer) anpassen. */
+  max-width: var(--board-max, min(92vw, 640px, calc(100vh - 170px)));
   min-width: 260px;
   margin: 0 auto;
 }
@@ -272,14 +288,24 @@ defineExpose({ select: onSquareActivate, FILES });
   width: 100%;
   border: 3px solid #5d4632;
   border-radius: 4px;
-  touch-action: none;
+  /* Scrollen über das Brett bleibt möglich; nur auf ziehbaren Figuren wird die Wischgeste zum Ziehen genutzt. */
+  touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+/* Kein Kontextmenü „Bild sichern“ beim langen Drücken auf eine Figur (iOS). */
+.chess-board :deep(img) {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 .square {
   position: relative;
   outline: none;
 }
+.chess-board.interactive .square.movable { touch-action: none; }
 .square.light { background: #f0d9b5; }
 .square.dark { background: #b58863; }
 .square.movable { cursor: grab; }
@@ -343,7 +369,7 @@ defineExpose({ select: onSquareActivate, FILES });
 }
 .promotion {
   position: absolute;
-  inset: 25% 10%;
+  inset: 22% 4%;
   background: #fff;
   color: #111;
   border-radius: 8px;
@@ -357,10 +383,12 @@ defineExpose({ select: onSquareActivate, FILES });
   padding: 8px;
 }
 .promotion-title { font-weight: 700; }
-.promotion-options { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.promotion-options { display: flex; gap: 6px; justify-content: center; width: 100%; }
 .promotion-option {
-  width: 72px;
-  height: 92px;
+  flex: 1 1 0;
+  max-width: 72px;
+  min-width: 0;
+  min-height: 72px;
   border: 2px solid #cbd5e1;
   border-radius: 6px;
   background: #f8fafc;
@@ -372,6 +400,6 @@ defineExpose({ select: onSquareActivate, FILES });
   padding: 4px;
 }
 .promotion-option:hover, .promotion-option:focus-visible { border-color: #1d4ed8; outline: 2px solid #1d4ed8; }
-.promotion-option :deep(img) { width: 56px; height: 56px; }
-.promotion-cancel { background: none; border: none; text-decoration: underline; cursor: pointer; color: #1f2937; }
+.promotion-option :deep(img) { width: 100%; max-width: 56px; height: auto; aspect-ratio: 1; }
+.promotion-cancel { background: none; border: none; text-decoration: underline; cursor: pointer; color: #1f2937; min-height: 40px; padding: 0 12px; }
 </style>

@@ -3,7 +3,14 @@ import { computed } from 'vue';
 import type { Color, Evaluation } from '@/models/game';
 import { evaluationSentence, playerPerspective, whitePercent } from '@/utils/evaluationText';
 
-const props = defineProps<{ evaluation: Evaluation | null; loading?: boolean; failed?: boolean; playerColor: Color }>();
+const props = defineProps<{
+  evaluation: Evaluation | null;
+  loading?: boolean;
+  failed?: boolean;
+  playerColor: Color;
+  /** Mobile Darstellung: schmale Leiste mit Beschriftung in einer Zeile, direkt unter dem Brett. */
+  compact?: boolean;
+}>();
 
 const percent = computed(() => whitePercent(props.evaluation));
 const sentence = computed(() => evaluationSentence(props.evaluation));
@@ -12,7 +19,25 @@ const valueText = computed(() => [sentence.value, perspective.value].filter(Bool
 </script>
 
 <template>
-  <q-card flat bordered class="evaluation-bar" data-testid="evaluation-bar">
+  <div v-if="compact" class="evaluation-bar compact" data-testid="evaluation-bar">
+    <div class="row items-center no-wrap q-gutter-x-sm">
+      <span class="side-label">Weiß<span v-if="playerColor === 'WHITE'"> (du)</span></span>
+      <div class="track col" role="meter" aria-label="Bewertung: Anteil von Weiß" aria-valuemin="0" aria-valuemax="100"
+           :aria-valuenow="percent" :aria-valuetext="valueText" data-testid="evaluation-track">
+        <div class="white-part" :style="{ width: `${percent}%` }" data-testid="evaluation-white" />
+        <div class="center-mark" aria-hidden="true" />
+        <div class="thumb" :style="{ left: `${percent}%` }" aria-hidden="true" />
+      </div>
+      <span class="side-label">Schwarz<span v-if="playerColor === 'BLACK'"> (du)</span></span>
+    </div>
+    <div class="row items-center no-wrap q-mt-xs compact-text">
+      <span class="ellipsis"><span data-testid="evaluation-text">{{ sentence }}</span><span v-if="perspective" class="text-grey-7"> · {{ perspective }}</span></span>
+      <q-spinner v-if="loading" size="12px" color="grey-7" class="q-ml-xs" aria-label="Bewertung wird aktualisiert" />
+      <span v-if="failed" class="text-warning q-ml-xs">· nicht aktuell</span>
+    </div>
+  </div>
+
+  <q-card v-else flat bordered class="evaluation-bar" data-testid="evaluation-bar">
     <q-card-section class="q-py-sm">
       <div class="row items-center justify-between text-caption text-grey-8">
         <span>Weiß<span v-if="playerColor === 'WHITE'"> (du)</span></span>
@@ -71,6 +96,10 @@ const valueText = computed(() => [sentence.value, perspective.value].filter(Bool
   transform: translate(-50%, -50%);
   transition: left 0.6s ease;
 }
+.compact .track { height: 12px; }
+.compact .thumb { width: 18px; height: 18px; }
+.compact .side-label { font-size: 12px; color: #4b5563; white-space: nowrap; }
+.compact-text { font-size: 13px; color: #1f2937; min-width: 0; }
 @media (prefers-reduced-motion: reduce) {
   .white-part, .thumb { transition: none; }
 }

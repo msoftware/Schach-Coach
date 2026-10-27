@@ -13,7 +13,7 @@ import java.util.Set;
  * @param classification  Schwellenwerte der Qualitätsklassen
  */
 @ConfigurationProperties("chesscoach.coaching")
-public record CoachingProperties(@DefaultValue("1.0.0") String rulesVersion,
+public record CoachingProperties(@DefaultValue("1.1.0") String rulesVersion,
                                  @DefaultValue Set<String> disabledRules,
                                  @DefaultValue Classification classification) {
 
@@ -23,7 +23,7 @@ public record CoachingProperties(@DefaultValue("1.0.0") String rulesVersion,
     }
 
     public static CoachingProperties defaults() {
-        return new CoachingProperties("1.0.0", Set.of(), Classification.defaults());
+        return new CoachingProperties("1.1.0", Set.of(), Classification.defaults());
     }
 
     /**

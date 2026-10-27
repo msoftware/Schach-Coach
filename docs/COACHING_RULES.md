@@ -1,6 +1,6 @@
 # Coaching-Regeln
 
-Dieses Dokument beschreibt jede implementierte Regel der Coaching-Logik (Regelversion **1.0.0**). Die Angaben zu ID, Titel, Zweck, Eingabemerkmalen und Lernprinzip werden direkt aus dem Regelkatalog der laufenden Anwendung (`GET /api/coaching/rules`) übernommen; Erkennungsverfahren, Begründungslogik und Testfälle beschreiben die Implementierung in `backend/src/main/java/de/chesscoach/coaching/`.
+Dieses Dokument beschreibt jede implementierte Regel der Coaching-Logik (Regelversion **1.1.0**). Die Angaben zu ID, Titel, Zweck, Eingabemerkmalen und Lernprinzip werden direkt aus dem Regelkatalog der laufenden Anwendung (`GET /api/coaching/rules`) übernommen; Erkennungsverfahren, Begründungslogik und Testfälle beschreiben die Implementierung in `backend/src/main/java/de/chesscoach/coaching/`.
 
 ## Grundsätze
 
