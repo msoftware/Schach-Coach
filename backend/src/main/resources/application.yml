@@ -1,0 +1,100 @@
+spring:
+  application:
+    name: chess-coach
+  mvc:
+    problemdetails:
+      # Eigenes einheitliches RFC-9457-Format in GlobalExceptionHandler.
+      enabled: false
+  jackson:
+    default-property-inclusion: always
+
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-exception: false
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    de.chesscoach: INFO
+
+chesscoach:
+  engine:
+    type: CALVIN
+    calvin:
+      jar-path: engine/calvin-chess-engine-6.1.1.jar
+      version: 6.1.1
+      max-heap-mb: 512
+    hash-mb: 32
+    threads: 1
+    start-timeout: 30s
+    search-grace: 3s
+    max-search-time: 20s
+    start-on-boot: true
+  analysis:
+    root-nodes: 150000
+    screening-nodes: 3000
+    candidate-nodes: 80000
+    max-candidates: 4
+    critical-factor: 2.0
+    deepen-factor: 3.0
+    min-reliable-depth: 9
+    max-line-plies: 12
+    max-queued-analyses: 32
+  difficulty:
+    random-seed: 0
+    levels:
+      BEGINNER: { nodes: 200, sample-fraction: 0.25, min-sample: 2 }
+      EASY: { nodes: 1500, sample-fraction: 0.5, min-sample: 3 }
+      MEDIUM: { nodes: 20000 }
+      STRONG: { nodes: 250000 }
+      MAXIMUM: { movetime-millis: 3000 }
+  coaching:
+    rules-version: 1.0.0
+    disabled-rules: []
+    classification:
+      best-max-loss: 10
+      excellent-max-loss: 25
+      good-max-loss: 60
+      inaccuracy-max-loss: 120
+      mistake-max-loss: 250
+      minor-win-probability-loss: 0.06
+      negligible-win-probability-loss: 0.02
+      forced-gap: 200
+      swing-threshold: 150
+  api:
+    allowed-origins:
+      - http://localhost:5173
+      - http://127.0.0.1:5173
+      - http://localhost:8080
+    max-games: 500
+    game-idle-timeout: 6h
+    rate-limit-per-minute: 120
+    max-restore-moves: 600
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+springdoc:
+  swagger-ui:
+    enabled: false

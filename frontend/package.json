@@ -1,0 +1,40 @@
+{
+  "name": "chess-coach-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Schach-Coach – Vue 3 / Quasar Frontend",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "preview": "vite preview --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "license-check": "license-checker-rseidelsohn --production --onlyAllow \"MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;BlueOak-1.0.0;Python-2.0;CC-BY-4.0\" --excludePrivatePackages"
+  },
+  "dependencies": {
+    "@quasar/extras": "2.1.0",
+    "idb": "8.0.4",
+    "pinia": "3.0.4",
+    "quasar": "2.35.1",
+    "vue": "3.5.44",
+    "vue-router": "4.6.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@quasar/vite-plugin": "2.0.2",
+    "@types/node": "22.20.5",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.4.6",
+    "fake-indexeddb": "6.2.6",
+    "jsdom": "27.4.0",
+    "license-checker-rseidelsohn": "5.0.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "4.1.12",
+    "vue-tsc": "3.3.13"
+  }
+}

@@ -1,0 +1,15 @@
+# Backend
+backend/build/
+backend/.gradle/
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+
+# IDE
+.idea/
+.vscode/
+*.iml

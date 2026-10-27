@@ -1,0 +1,19 @@
+services:
+  backend:
+    build: ./backend
+    image: chess-coach-backend:1.0.0
+    restart: unless-stopped
+    environment:
+      CHESSCOACH_API_ALLOWED_ORIGINS: http://localhost:8081
+    expose:
+      - "8080"
+    mem_limit: 2g
+
+  frontend:
+    build: ./frontend
+    image: chess-coach-frontend:1.0.0
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"

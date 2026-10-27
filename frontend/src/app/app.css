@@ -1,0 +1,22 @@
+body {
+  background: #f5f1ea;
+  color: #111827;
+}
+
+/* Sichtbarer Tastaturfokus für alle Bedienelemente (NFR-06). */
+:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
