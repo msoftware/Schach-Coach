@@ -23,7 +23,12 @@
 | ⇅ | Brett drehen |
 | ⚙ | Einstellungen |
 
-In der **Zugliste** kannst du jeden Zug anklicken oder mit den Pfeilen blättern; das Brett zeigt dann die damalige
+Die **Zugliste** zeigt jeden Halbzug in einer eigenen Zeile und in Worten, z. B.
+„2. Weiß (du): Springer von g1 nach f3“ oder „3… Schwarz: Springer von c6 schlägt Springer auf e5“. Dahinter steht in
+Klammern die übliche Kurznotation (z. B. `Nf3`) und bei deinen Zügen die Bewertung (z. B. „Bestzug“, „Fehler“).
+„3.“ steht für einen Zug von Weiß, „3…“ für die Antwort von Schwarz im selben Zugpaar.
+
+Du kannst jeden Zug anklicken oder mit den Pfeilen blättern; das Brett zeigt dann die damalige
 Stellung (nur Ansicht). „Zur aktuellen Stellung“ (⏭) kehrt zum Spiel zurück.
 
 ## Das Coaching
