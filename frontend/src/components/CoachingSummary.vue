@@ -27,6 +27,13 @@ const bestLabel = computed(() => {
 const playedText = computed(() => (a.value ? describeMove(a.value.fenBefore, a.value.playedMoveUci, a.value.playedMove) : ''));
 const bestText = computed(() => (a.value?.bestMoveUci ? describeMove(a.value.fenBefore, a.value.bestMoveUci, a.value.bestMove) : ''));
 const loss = computed(() => a.value?.evaluationLoss?.centipawns ?? null);
+/** Ein Bestzug (innerhalb der Toleranz) hat höchstens gleich gute Alternativen – „besser“ wäre irreführend. */
+const equalAlternative = computed(() => a.value?.classification === 'BEST');
+const alternativeHeading = computed(() => {
+  if (a.value?.classification === 'BEST') return 'Gleich gute Alternative';
+  if (a.value?.classification === 'EXCELLENT') return 'Etwas genauer wäre gewesen';
+  return 'Bessere Alternative';
+});
 </script>
 
 <template>
@@ -77,9 +84,10 @@ const loss = computed(() => a.value?.evaluationLoss?.centipawns ?? null);
       </div>
 
       <div v-if="bestLabel && a.bestMoveUci !== a.playedMoveUci" class="q-mb-sm">
-        <div class="text-subtitle2">Bessere Alternative</div>
+        <div class="text-subtitle2" data-testid="alternative-heading">{{ alternativeHeading }}</div>
         <div class="text-body1"><strong>{{ bestText }}</strong> <span class="text-grey-8">({{ bestLabel }})</span></div>
         <div class="text-body2 text-grey-8">Mit diesem Zug: {{ evaluationWords(a.bestScore) }}</div>
+        <div v-if="equalAlternative" class="text-body2 text-positive">Dein Zug ist genauso stark – beide sind eine gute Wahl.</div>
       </div>
       <div v-else class="q-mb-sm text-positive">Du hast den besten Zug gespielt, den der Computer gefunden hat.</div>
 

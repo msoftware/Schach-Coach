@@ -75,6 +75,15 @@ class StrategicRulesTest {
         }
 
         @Test
+        void gainedCenterSquaresWithoutOccupyingReadAsCompleteSentence() {
+            // Gefunden beim Probespielen: 7.dxc4 öffnet die d-Linie; der Text begann mit einem hängenden „Zusätzlich …“.
+            String fen = "r1bqk2r/pppp1ppp/5n2/2b5/2n1P3/3P4/PPP2PPP/RNBQ1RK1 w kq - 0 7";
+            List<CoachingFinding> f = run(rule, Contexts.of(fen, "d3c4").build());
+            assertThat(f).isNotEmpty();
+            assertThat(f.get(0).explanation()).startsWith("Deine Figuren erreichen jetzt").doesNotContain("Zusätzlich");
+        }
+
+        @Test
         void retreatLosesCenterControl() {
             List<CoachingFinding> f = run(rule, Contexts.of(KNIGHT_F3_E5, "f3g1").build());
             assertThat(f).extracting(CoachingFinding::polarity).containsExactly(Polarity.NEGATIVE);
@@ -300,6 +309,30 @@ class StrategicRulesTest {
                     .contains("Schwachen Bauern d5 angreifen");
             assertThat(plans).allSatisfy(p -> assertThat(p.basis()).isNotBlank());
             assertThat(run(rule, c)).hasSize(1);
+        }
+
+        /**
+         * Gefunden beim Probespielen: Nach 13.Qxf2 (die gegnerische Dame ist geschlagen, 13...Bxf2+ folgt) riet der Coach
+         * „Du hast +4 mehr an Material – tausche Figuren“, obwohl Weiß nach dem Abtausch klar weniger Material hat.
+         */
+        @Test
+        void materialPlanUsesBalanceAfterTheExchangeSettles() {
+            String fen = "r1b2rk1/ppp2ppp/3p4/2b5/2P1P3/P1N2Q1P/1PP2qP1/R1B3K1 w - - 0 13";
+            var c = Contexts.of(fen, "f3f2", "c5f2", "g1f2", "c8e6", "b2b3").build();
+            assertThat(rule.plans(c)).filteredOn(p -> p.side().equals("USER")).extracting(StrategicPlan::title)
+                    .doesNotContain("Vorteilhaften Abtausch anstreben");
+            assertThat(rule.plans(c)).filteredOn(p -> p.side().equals("OPPONENT")).extracting(StrategicPlan::explanation)
+                    .anySatisfy(t -> assertThat(t).startsWith("Der Gegner hat mehr Material – ").doesNotContain("+"));
+        }
+
+        @Test
+        void passivePieceTextMatchesTheGenderOfThePiece() {
+            // Turm a1 eingesperrt (Läufer c1, Bauer a3/b2 davor): „er“, nicht „sie“.
+            String fen = "r1b2rk1/ppp2ppp/3p4/8/2P1P3/P1N4P/1PP2KP1/R1B5 w - - 0 15";
+            var c = Contexts.of(fen, "c3d5").build();
+            assertThat(rule.plans(c)).filteredOn(p -> p.title().equals("Passive Figur verbessern")).extracting(StrategicPlan::explanation)
+                    .isNotEmpty()
+                    .allSatisfy(t -> assertThat(t).contains(" er ").contains(" ihm ").doesNotContain(" sie ").doesNotContain(" ihr "));
         }
 
         @Test

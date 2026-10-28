@@ -53,6 +53,70 @@ class TacticalRulesTest {
             assertThat(f).noneMatch(x -> x.polarity() == Polarity.POSITIVE);
         }
 
+        /**
+         * Gefunden beim Probespielen: Nach 6...Nxc4 lobte der Coach 7.dxc4 mit „du gewinnst so viel wie eine Figur“.
+         * Zurückschlagen stellt nur das Material wieder her – es ist kein Gewinn.
+         */
+        @Test
+        void recaptureIsNotPraisedAsMaterialGain() {
+            String beforeOpponent = "r1bqk2r/pppp1ppp/5n2/2b1n3/2B1P3/3P4/PPP2PPP/RNBQ1RK1 b kq - 1 6";
+            String afterOpponent = "r1bqk2r/pppp1ppp/5n2/2b5/2n1P3/3P4/PPP2PPP/RNBQ1RK1 w kq - 0 7";
+            var c = Contexts.of(afterOpponent, "d3c4", "e8g8", "b1c3").cp(-320, -320, -320)
+                    .previousOpponent(beforeOpponent, "e5c4").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).extracting(CoachingFinding::title).containsExactly("Zurückgeschlagen");
+            assertThat(f.get(0).explanation())
+                    .contains("Der Gegner hat gerade einen Läufer von dir geschlagen, jetzt nimmst du einen Springer")
+                    .contains("gewonnen hast du dadurch aber nichts")
+                    .doesNotContain("gewinnst du");
+        }
+
+        @Test
+        void recaptureHintDoesNotDependOnLaterMaterialInTheLine() {
+            // Dieselbe Rückeroberung, aber die Engine-Variante gewinnt später scheinbar weiteres Material (4...Nxe4? 5.Qd5),
+            // das die Bewertung nicht bestätigt: Der Hinweis „Zurückgeschlagen“ muss trotzdem erscheinen.
+            String beforeOpponent = "r1bqk2r/pppp1ppp/5n2/2b1n3/2B1P3/3P4/PPP2PPP/RNBQ1RK1 b kq - 1 6";
+            String afterOpponent = "r1bqk2r/pppp1ppp/5n2/2b5/2n1P3/3P4/PPP2PPP/RNBQ1RK1 w kq - 0 7";
+            var c = Contexts.of(afterOpponent, "d3c4", "f6e4", "d1d5", "e4f2", "f1f2", "c5f2", "g1f2").cp(-320, -320, -320)
+                    .previousOpponent(beforeOpponent, "e5c4").build();
+            assertThat(run(rule, c)).extracting(CoachingFinding::title).contains("Zurückgeschlagen");
+        }
+
+        @Test
+        void takingMoreThanWasLostWithoutNetGainIsExplainedHonestly() {
+            // Gefunden beim Probespielen: 10...Nxf2 (Bauer) 11.Rxf2 (Springer); danach holt Schwarz mit ...Qh4/...Bxf2+
+            // das Material zurück. „Damit holst du dir das Material zurück“ passte nicht zu „Springer für Bauer“.
+            String beforeOpponent = "r1bq1rk1/ppp2ppp/3p4/2b5/2P1P1n1/P1N4P/1PP2PP1/R1BQ1RK1 b - - 0 10";
+            String afterOpponent = "r1bq1rk1/ppp2ppp/3p4/2b5/2P1P3/P1N4P/1PP2nP1/R1BQ1RK1 w - - 0 11";
+            var c = Contexts.of(afterOpponent, "f1f2", "d8h4", "d1f3", "c5f2", "f3f2", "h4f2", "g1f2").cp(-380, -400, -400)
+                    .previousOpponent(beforeOpponent, "g4f2").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).extracting(CoachingFinding::title).containsExactly("Zurückgeschlagen");
+            assertThat(f.get(0).explanation()).contains("einen Bauern von dir geschlagen, jetzt nimmst du einen Springer")
+                    .contains("sogar mehr, als du verloren hast").doesNotContain("holst du dir das Material zurück");
+        }
+
+        @Test
+        void captureOnAnotherSquareIsNoRecapture() {
+            String beforeOpponent = "r1bqk2r/pppp1ppp/5n2/2b1n3/2B1P3/3P4/PPP2PPP/RNBQ1RK1 b kq - 1 6";
+            String afterOpponent = "r1bqk2r/pppp1ppp/5n2/2b5/2n1P3/3P4/PPP2PPP/RNBQ1RK1 w kq - 0 7";
+            // Statt zurückzuschlagen nimmt Weiß nichts auf c4 – kein Rückschlag-Hinweis.
+            var c = Contexts.of(afterOpponent, "b1c3", "c4b2").cp(-320, -420, -320)
+                    .previousOpponent(beforeOpponent, "e5c4").build();
+            assertThat(run(rule, c)).extracting(CoachingFinding::title).doesNotContain("Zurückgeschlagen");
+        }
+
+        @Test
+        void winningMoreThanWasJustLostIsStillAGain() {
+            // 2...Nxe4 schlägt einen Bauern, 3.Nxe4 gewinnt dafür einen Springer: Netto bleibt ein Gewinn.
+            String beforeOpponent = "rnbqkb1r/pppppppp/5n2/8/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 2 2";
+            var c = Contexts.of(KNIGHT_TAKES_E4, "c3e4", "d7d5", "e4g3").cp(-80, 220, 220)
+                    .previousOpponent(beforeOpponent, "f6e4").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).hasSize(1);
+            assertThat(f.get(0).explanation()).contains("gewinnst du so viel wie zwei Bauern");
+        }
+
         @Test
         void doesNotClaimGainWhenLineDoesNotConfirmIt() {
             var c = Contexts.of(AFTER_NC6, "f3e5", "c6e5").cp(24, -229, 23).build();
@@ -63,6 +127,28 @@ class TacticalRulesTest {
     @Nested
     class Tact002MaterialLoss {
         private final MaterialLossRule rule = new MaterialLossRule();
+
+        /**
+         * Gefunden beim Probespielen: Nach 11...Qh4 war der Turm f2 nicht mehr zu retten. Der Coach nannte 12.Qf3
+         * „ein Opfer mit Ausgleich“ – richtig ist: Der Verlust war unvermeidbar, der Zug begrenzt den Schaden.
+         */
+        @Test
+        void unavoidableLossIsNotCalledASacrifice() {
+            String fen = "r1b2rk1/ppp2ppp/3p4/2b5/2P1P2q/P1N4P/1PP2RP1/R1BQ2K1 w - - 1 12";
+            var c = Contexts.of(fen, "d1f3", "h4f2", "f3f2", "c5f2", "g1f2", "c8e6", "b2b3", "f7f5", "c1f4", "f5e4")
+                    .cp(-418, -419, -419).best("d1e1", "c5f2", "e1f2", "h4f2", "g1f2").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).extracting(CoachingFinding::title).containsExactly("Verlust nicht mehr zu verhindern");
+            assertThat(f.get(0).explanation()).contains("nicht mehr zu verhindern").doesNotContain("Opfer");
+        }
+
+        @Test
+        void realSacrificeWithCompensationIsStillRecognised() {
+            // Material war vorher ausgeglichen, die Bewertung bleibt nach dem Figurenopfer stabil: echtes Opfer.
+            var c = Contexts.of(AFTER_NC6, "f3e5", "c6e5").cp(30, 20, 30).best("d2d4", "e5d4", "f3d4").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).extracting(CoachingFinding::title).containsExactly("Materialopfer mit Kompensation");
+        }
 
         @Test
         void recognisesAvoidableLoss() {
@@ -444,6 +530,25 @@ class TacticalRulesTest {
     @Nested
     class Tact016Simplification {
         private final SimplificationRule rule = new SimplificationRule();
+
+        /**
+         * Gefunden beim Probespielen: Nach 12...Qxf2+ (Turm geschlagen) hieß es zu 13.Qxf2 Bxf2+ 14.Kxf2: „Du gibst die
+         * Dame ab und bekommst dafür die Dame und einen Läufer – das lohnt sich für dich.“ Der Turm fehlte in der Bilanz.
+         */
+        @Test
+        void recaptureCountsThePieceTheOpponentJustTook() {
+            String beforeOpponent = "r1b2rk1/ppp2ppp/3p4/2b5/2P1P2q/P1N2Q1P/1PP2RP1/R1B3K1 b - - 2 12";
+            String afterOpponent = "r1b2rk1/ppp2ppp/3p4/2b5/2P1P3/P1N2Q1P/1PP2qP1/R1B3K1 w - - 0 13";
+            var c = Contexts.of(afterOpponent, "f3f2", "c5f2", "g1f2").cp(-410, -414, -414)
+                    .previousOpponent(beforeOpponent, "h4f2").build();
+            List<CoachingFinding> f = run(rule, c);
+            assertThat(f).hasSize(1);
+            assertThat(f.get(0).polarity()).isEqualTo(Polarity.NEGATIVE);
+            assertThat(f.get(0).explanation())
+                    .contains("Rechnet man deinen gerade geschlagenen Turm mit")
+                    .contains("bekommst dafür nur")
+                    .doesNotContain("lohnt sich");
+        }
 
         @Test
         void losingExchange() {

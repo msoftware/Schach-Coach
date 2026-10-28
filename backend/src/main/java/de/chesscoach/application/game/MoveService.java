@@ -13,6 +13,8 @@ import de.chesscoach.engine.EngineProtocolException;
 import de.chesscoach.engine.EngineRegistry;
 import de.chesscoach.engine.EngineTimeoutException;
 import de.chesscoach.engine.EngineUnavailableException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -30,6 +32,8 @@ import java.util.concurrent.ExecutionException;
  */
 @Service
 public class MoveService {
+
+    private static final Logger log = LoggerFactory.getLogger(MoveService.class);
 
     private final GameService games;
     private final ChessRulesService rules;
@@ -86,6 +90,9 @@ public class MoveService {
         MoveRecord record = new MoveRecord(UUID.randomUUID().toString(), s.moves().size() + 1, described.uci(), described.san(),
                 current.fen(), next.fen(), current.sideToMove(), byUser, s.nextVersion(), Instant.now());
         s.apply(next, record);
+        if (s.status().isFinished()) {
+            log.info("Partie beendet nach {} Halbzügen: {}", record.ply(), s.status());
+        }
         return record;
     }
 

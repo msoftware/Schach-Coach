@@ -58,6 +58,19 @@ Analyse (`chesscoach.analysis`, Profil NORMAL; FAST ×0,5, DEEP ×2; Vertiefung 
 | `candidate-nodes` (P_u, P_b und weitere Kandidaten) | 80 000, in kritischen Stellungen ×2 |
 | `max-candidates` | 4 (+ gespielter und Engine-Bestzug) |
 | `min-reliable-depth` | 9 |
+| `verify-margin` / `verify-factor` (Nachprüfung knapper Entscheidungen) | 100 cp / ×4 |
+| `evaluation-nodes` (Bewertungsleiste, unabhängig vom Profil) | 40 000 |
+
+**Nachprüfung knapper Entscheidungen:** Will der Coach einen anderen als den gespielten Zug empfehlen und liegt dieser
+höchstens `verify-margin` Centipawns vorn, werden gespielter Zug und Empfehlung mit `verify-factor`-fachem Kandidatenbudget
+neu bewertet – so lange (höchstens 5 Suchen), bis der Zug, der am Ende vorn liegt, unter denselben Bedingungen geprüft ist
+wie der gespielte. Hintergrund: Mit 80 000 Knoten übersieht Calvin gelegentlich eine Widerlegung (z. B. 6.Bb3? Ng4! oder
+10.Qe1? Qh4!) und würde einen schwächeren Zug als „besser“ empfehlen. Die Nachprüfung kostet nur in diesen Fällen Zeit
+(typisch 2–5 s zusätzlich).
+
+**Regelversion und Browser-Cache:** Das Frontend speichert Analysen im Browser unter einem Schlüssel aus Stellung, Zug,
+Engine-Version, Profil, Tiefe und `chesscoach.coaching.rules-version`. Jede Änderung an Regeln, Erklärungstexten oder der
+Analyse-Logik muss die Regelversion erhöhen, sonst sehen Benutzer weiter die alten Ergebnisse.
 
 Spielstärken (`chesscoach.difficulty.levels`, abrufbar über `GET /api/settings/options`):
 

@@ -21,6 +21,18 @@ describe('CoachingSummary', () => {
     expect(w.text()).not.toContain('cp');
   });
 
+  it('nennt eine Alternative nur dann „besser“, wenn sie es wirklich ist', () => {
+    const heading = (classification: string, classificationLabel: string) => mount(CoachingSummary, {
+      props: { analysis: completedAnalysis({ classification: classification as never, classificationLabel }) },
+    });
+    const best = heading('BEST', 'Bestzug');
+    expect(best.find('[data-testid="alternative-heading"]').text()).toBe('Gleich gute Alternative');
+    expect(best.text()).toContain('Dein Zug ist genauso stark');
+    expect(best.text()).not.toContain('Bessere Alternative');
+    expect(heading('EXCELLENT', 'Sehr gut').find('[data-testid="alternative-heading"]').text()).toBe('Etwas genauer wäre gewesen');
+    expect(heading('MISTAKE', 'Fehler').find('[data-testid="alternative-heading"]').text()).toBe('Bessere Alternative');
+  });
+
   it('zeigt laufende Analyse ohne Ergebnisfelder vorauszusetzen', () => {
     const pending = completedAnalysis({ status: 'RUNNING', stage: 'Kandidaten', progressPercent: 40, classification: null,
       classificationLabel: null, mainReason: null, scoreAfter: null, candidates: null, sections: null, findings: null });

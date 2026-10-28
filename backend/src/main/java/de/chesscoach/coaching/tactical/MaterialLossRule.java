@@ -74,6 +74,21 @@ public class MaterialLossRule extends AbstractRule implements TacticalRule {
         boolean compensated = c.scoreAfter().isPresent() && c.scoreBefore().isPresent()
                 && c.scoreAfter().get().centipawnsClamped(3000) >= c.scoreBefore().get().centipawnsClamped(3000) - 60
                 && scoreDrop < 80;
+        // Enthält schon die Bewertung vor dem Zug den Verlust, war das Material nicht mehr zu retten – das ist kein Opfer.
+        boolean alreadyLost = c.scoreBefore().isPresent()
+                && c.scoreBefore().get().centipawnsClamped(3000) <= (before - loss) * 100 + 100;
+        if (compensated && alreadyLost) {
+            findings.add(FindingBuilder.of(this)
+                    .neutral().verified().severity(Severity.LOW)
+                    .title("Verlust nicht mehr zu verhindern")
+                    .explanation("Hier verlierst du " + GermanText.material(loss) + ", aber das war nicht mehr zu verhindern: "
+                            + "Schon vor deinem Zug war dieses Material verloren, auch der beste Zug rettet es nicht. "
+                            + "Dein Zug begrenzt den Schaden. (Berechnet: " + line.numbered(0, end) + ")")
+                    .squares(captureSquares)
+                    .lineEvidence(line, end, before, settled, "unvermeidbarer Materialverlust", Confidence.MEDIUM)
+                    .build());
+            return findings;
+        }
         if (compensated) {
             findings.add(FindingBuilder.of(this)
                     .neutral().verified().severity(Severity.LOW)

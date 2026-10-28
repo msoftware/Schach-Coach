@@ -1,0 +1,15 @@
+{
+  "name": "Schach-Coach",
+  "short_name": "Schach-Coach",
+  "description": "Spiele gegen den Computer und erhalte nach jedem Zug eine verständliche Analyse.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f1ea",
+  "theme_color": "#4e342e",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

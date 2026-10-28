@@ -11,7 +11,8 @@ RUN ./gradlew --no-daemon bootJar
 
 # Laufzeit: JDK-Image, da Calvin das Modul jdk.incubator.vector benötigt.
 FROM eclipse-temurin:21.0.12_8-jdk
-RUN useradd --system --uid 10001 chesscoach
+RUN useradd --system --uid 10001 chesscoach \
+    && mkdir -p /app/logs && chown chesscoach /app/logs
 WORKDIR /app
 COPY --from=build /src/build/libs/chess-coach-backend.jar /app/chess-coach-backend.jar
 COPY --from=build /src/engine/calvin-chess-engine-6.1.1.jar /app/engine/calvin-chess-engine-6.1.1.jar
@@ -20,5 +21,6 @@ USER chesscoach
 EXPOSE 8080
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=40" \
     SPRING_PROFILES_ACTIVE=prod \
+    LOGGING_FILE_PATH=/app/logs \
     CHESSCOACH_ENGINE_CALVIN_JAR_PATH=/app/engine/calvin-chess-engine-6.1.1.jar
 ENTRYPOINT ["java", "-jar", "/app/chess-coach-backend.jar"]

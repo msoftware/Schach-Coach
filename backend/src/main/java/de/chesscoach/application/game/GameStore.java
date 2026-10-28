@@ -3,6 +3,8 @@ package de.chesscoach.application.game;
 import de.chesscoach.application.ErrorCode;
 import de.chesscoach.application.GameException;
 import de.chesscoach.infrastructure.config.ApiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class GameStore {
+
+    private static final Logger log = LoggerFactory.getLogger(GameStore.class);
 
     private final Map<String, GameSession> sessions = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
@@ -42,10 +46,16 @@ public class GameStore {
      */
     public synchronized void put(GameSession session) {
         evictIdle();
+        int displaced = 0;
         while (!sessions.isEmpty() && sessions.size() >= Math.max(1, properties.maxGames())) {
             sessions.values().stream()
                     .min(Comparator.comparingLong(GameSession::accessSequence))
                     .ifPresent(oldest -> sessions.remove(oldest.gameId()));
+            displaced++;
+        }
+        if (displaced > 0) {
+            log.warn("Höchstzahl von {} Partien erreicht – {} am längsten unbenutzte Partie(n) verworfen",
+                    properties.maxGames(), displaced);
         }
         // Die neue Partie gilt ab jetzt als benutzt, sonst könnte sie (z. B. nach einer langen Wiederherstellung)
         // als älteste sofort wieder verdrängt werden.
@@ -79,8 +89,13 @@ public class GameStore {
         Instant now = Instant.now();
         Instant limit = now.minus(properties.gameIdleTimeout());
         Instant emptyLimit = now.minus(properties.emptyGameIdleTimeout());
+        int before = sessions.size();
         sessions.values().removeIf(s -> s.lastAccess().isBefore(limit)
                 || (s.lastAccess().isBefore(emptyLimit) && hasNoMoves(s)));
+        int removed = before - sessions.size();
+        if (removed > 0) {
+            log.info("{} inaktive Partie(n) verworfen, {} aktiv", removed, sessions.size());
+        }
     }
 
     /** Liest die Zughistorie nur unter der Sperre; eine gerade gesperrte Partie ist aktiv und bleibt erhalten. */

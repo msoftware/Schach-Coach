@@ -43,6 +43,37 @@ docker compose up --build      # http://localhost:8081
 - Hinweis: Die Docker-Dateien wurden erstellt, ein Image-Build konnte in der Entwicklungsumgebung mangels laufendem
   Docker-Daemon nicht ausgeführt werden. Die verwendeten Basis-Image-Tags wurden auf Existenz geprüft.
 
+## Hinter einem HTTPS-Reverse-Proxy (z. B. Apache)
+
+Der Browser schickt bei `POST`-Anfragen den Header `Origin: https://<domain>`. Sieht das Backend intern einen anderen
+Host oder `http`, behandelt Spring die Anfrage als fremden Ursprung und lehnt sie ab (`403 Invalid CORS request`), wenn
+die Domain nicht in `chesscoach.api.allowed-origins` steht. Deshalb:
+
+1. **Ursprung freigeben:** `CHESSCOACH_API_ALLOWED_ORIGINS=https://<domain>` (Umgebungsvariable des Backends bzw. in
+   `docker-compose.yml` statt `http://localhost:8081`).
+2. **Host und Schema weitergeben** und die echte Client-Adresse für das Rate-Limit auswerten
+   (`SERVER_FORWARD_HEADERS_STRATEGY=native`):
+
+```apache
+<VirtualHost *:443>
+    ServerName <domain>
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+    ProxyPass        / http://127.0.0.1:<port>/ retry=1 timeout=120
+    ProxyPassReverse / http://127.0.0.1:<port>/
+    # SSL-Zertifikat wie gehabt (z. B. Let's Encrypt)
+</VirtualHost>
+```
+
+Benötigte Module: `a2enmod proxy proxy_http headers`. WebSocket-Weiterleitungen braucht die Anwendung nicht.
+
+3. **Weiterleitung http → https mit 308**, nicht mit 301/302: Browser machen bei 301/302 aus einem `POST` ein `GET`
+   (Antwort dann `405 METHOD_NOT_ALLOWED`). Beispiel im `:80`-VirtualHost:
+   `RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=308]`.
+4. **Produktiv nicht den Vite-Entwicklungsserver** hinter den Proxy stellen, sondern Variante B (ein JAR mit
+   `-PwithFrontend`) oder C (Docker Compose).
+
 ## Konfiguration (`backend/src/main/resources/application.yml`)
 
 Alle Werte lassen sich per Umgebungsvariable überschreiben (z. B. `CHESSCOACH_ANALYSIS_CANDIDATE_NODES=120000`).
@@ -76,4 +107,35 @@ Alle Werte lassen sich per Umgebungsvariable überschreiben (z. B. `CHESSCOACH_A
 - Partien liegen nur im Arbeitsspeicher; nach einem Neustart des Backends stellt das Frontend die Partie aus dem
   Browser-Speicher wieder her.
 - Gesundheitsprüfung: `GET /api/health` (`UP`, `DEGRADED` bei nicht verfügbarer Engine).
-- Logs enthalten keine Partien; protokolliert werden Engine-Start, Neustarts und Fehler.
+
+## Logging
+
+Neben der Konsole schreibt das Backend drei rollierende Dateien (Konfiguration: `backend/src/main/resources/logback-spring.xml`):
+
+| Datei | Inhalt |
+|---|---|
+| `chess-coach.log` | alle Meldungen ab INFO: Startzusammenfassung, Partien gestartet/beendet, Analysen (Dauer, Tiefe, Knoten, Klasse), Engine-Starts und -Neustarts, verworfene Partien |
+| `chess-coach-error.log` | nur WARN und ERROR – Rate-Limit-Treffer, volle Analyse-Warteschlange, Engine-Probleme, ungültige Anfragen (405/415), unerwartete Fehler mit Stacktrace |
+| `chess-coach-access.log` | eine Zeile je API-Anfrage: Methode, Pfad, Status, Dauer, gekürzte Client-Adresse, Request-ID |
+
+Rotation: täglich und zusätzlich ab `max-file-size`; ältere Dateien werden als `.gz` abgelegt und nach `max-history`
+Tagen bzw. bei Überschreiten von `total-size-cap` gelöscht.
+
+| Einstellung | Bedeutung | Standard |
+|---|---|---|
+| `logging.file.path` (`LOGGING_FILE_PATH`) | Verzeichnis der Logdateien | `logs` (Docker: `/app/logs`, Volume `backend-logs`) |
+| `chesscoach.logging.max-file-size` | Größe, ab der innerhalb eines Tages rotiert wird | 10MB |
+| `chesscoach.logging.max-history` / `access-max-history` | Aufbewahrung in Tagen (Anwendung/Fehler bzw. Zugriffe) | 30 / 14 |
+| `chesscoach.logging.total-size-cap` | Obergrenze je Logart | 1GB |
+| `logging.level.de.chesscoach` | Detailgrad der Anwendung (`DEBUG` zeigt u. a. Nachprüfungen und eingereihte Analysen) | INFO |
+| `logging.level.de.chesscoach.access` | `DEBUG` protokolliert zusätzlich jede erfolgreiche lesende Abfrage | INFO |
+
+**Fehler zuordnen:** Jede API-Anfrage bekommt eine Request-ID. Sie steht im Antwort-Header `X-Request-Id`, in jeder
+Fehlerantwort (`"requestId"`) und in jeder Logzeile dieser Anfrage, z. B. `[3f9a01c2 7b2e4d10]` (Request-ID,
+Partie-ID). Meldet der Browser einen Fehler, findet `grep 3f9a01c2 logs/*.log` alle zugehörigen Einträge – auch die
+der Analyse, die die Anfrage ausgelöst hat. Bei Docker: `docker compose exec backend sh -c 'grep 3f9a01c2 /app/logs/*.log'`
+oder `docker compose logs backend`.
+
+**Datenschutz:** Die Logs enthalten keine Partien, Züge oder Stellungen. Client-Adressen werden gekürzt gespeichert
+(IPv4 auf das /24-Netz, z. B. `203.0.113.0`, IPv6 auf die ersten 48 Bit). Partien sind nur über eine zufällige,
+gekürzte Kennung erkennbar.

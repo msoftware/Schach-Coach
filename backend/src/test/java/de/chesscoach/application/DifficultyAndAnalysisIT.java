@@ -88,7 +88,7 @@ class DifficultyAndAnalysisIT {
     void analysisOfBlunderAndGoodMove() {
         MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
                 new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
-                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000), CoachingProperties.defaults());
+                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000, 100, 4.0), CoachingProperties.defaults());
         String fen = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3";
         long start = System.currentTimeMillis();
         MoveAnalysis blunder = analyzer.analyze(engine, new MoveAnalyzer.Request(fen, "f3e5", null, null, AnalysisProfile.NORMAL, 1),
@@ -113,11 +113,45 @@ class DifficultyAndAnalysisIT {
         assertThat(good.mainReason()).isNotBlank();
     }
 
+    /**
+     * Gefunden beim Probespielen: Mit 80 000 Knoten je Kandidat hielt der Coach 6.Bb3 für besser als die gespielte
+     * Rochade und stufte diese nur als „Gut“ ein. Tiefer gerechnet scheitert 6.Bb3 an 6...Ng4 (Angriff auf h2/f2);
+     * die Rochade ist der stärkste Zug. Die Nachprüfung knapper Entscheidungen muss das erkennen.
+     */
+    @Test
+    void closeCallIsVerifiedBeforeRecommendingAnotherMove() {
+        MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
+                new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
+                new AnalysisProperties(150_000, 3000, 80_000, 4, 2.0, 3.0, 9, 12, 8, 200, 40_000, 100, 4.0), CoachingProperties.defaults());
+        String fen = "r1bqk2r/pppp1ppp/5n2/2b1n3/2B1P3/3P4/PPP2PPP/RNBQK2R w KQkq - 0 6";
+        MoveAnalysis castle = analyzer.analyze(engine, new MoveAnalyzer.Request(fen, "e1g1", null, null, AnalysisProfile.NORMAL, 1),
+                CancellationToken.none(), (s, p) -> { });
+        assertThat(castle.bestMove().uci()).isNotEqualTo("c4b3");
+        assertThat(castle.classification()).isIn(MoveClassification.BEST, MoveClassification.EXCELLENT);
+    }
+
+    /**
+     * Gefunden beim Probespielen: Nach 9...Ng4 empfahl der Coach „etwas genauer wäre 10.Qe1“. Tiefer gerechnet ist
+     * 10.h3 der beste Zug, 10.Qe1 scheitert an 10...Qh4. Die nur flach bewertete Alternative darf den Vergleich
+     * gegen den nachgeprüften gespielten Zug nicht gewinnen.
+     */
+    @Test
+    void recommendedMoveIsVerifiedUnderTheSameConditionsAsThePlayedMove() {
+        MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
+                new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
+                new AnalysisProperties(150_000, 3000, 80_000, 4, 2.0, 3.0, 9, 12, 8, 200, 40_000, 100, 4.0), CoachingProperties.defaults());
+        String fen = "r1bq1rk1/ppp2ppp/3p4/2b5/2P1P1n1/P1N5/1PP2PPP/R1BQ1RK1 w - - 1 10";
+        MoveAnalysis h3 = analyzer.analyze(engine, new MoveAnalyzer.Request(fen, "h2h3", null, null, AnalysisProfile.NORMAL, 1),
+                CancellationToken.none(), (s, p) -> { });
+        assertThat(h3.bestMove().uci()).isNotEqualTo("d1e1");
+        assertThat(h3.classification()).isIn(MoveClassification.BEST, MoveClassification.EXCELLENT);
+    }
+
     @Test
     void analysisCanBeCancelled() {
         MoveAnalyzer analyzer = new MoveAnalyzer(RULES, ExplanationQualityTestAccess.tactical(), ExplanationQualityTestAccess.strategic(),
                 new MistakeClassifier(CoachingProperties.defaults()), new ExplanationBuilder(),
-                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000), CoachingProperties.defaults());
+                new AnalysisProperties(60_000, 2000, 40_000, 3, 2.0, 3.0, 9, 12, 8, 200, 40_000, 100, 4.0), CoachingProperties.defaults());
         CancellationToken token = new CancellationToken();
         token.cancel();
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> analyzer.analyze(engine,

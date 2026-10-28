@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -24,6 +26,8 @@ import java.util.regex.Pattern;
  */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
 
     static final int MAX_BUCKETS = 10_000;
     static final String OVERFLOW_CLIENT = "overflow";
@@ -63,9 +67,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         Matcher game = GAME_PATH.matcher(request.getRequestURI());
-        boolean allowed = (perGame <= 0 || !game.matches() || tryAcquire("game:" + game.group(1), perGame))
-                && (perClient <= 0 || tryAcquire("ip:" + request.getRemoteAddr(), perClient));
-        if (!allowed) {
+        boolean gameAllowed = perGame <= 0 || !game.matches() || tryAcquire("game:" + game.group(1), perGame);
+        boolean clientAllowed = gameAllowed && (perClient <= 0 || tryAcquire("ip:" + request.getRemoteAddr(), perClient));
+        if (!clientAllowed) {
+            log.warn("Rate-Limit erreicht: {} ({} je Minute) für {}", gameAllowed ? "je Adresse" : "je Partie",
+                    gameAllowed ? perClient : perGame, request.getRequestURI());
             response.setStatus(ErrorCode.RATE_LIMITED.status());
             response.setContentType("application/problem+json");
             response.setCharacterEncoding("UTF-8");

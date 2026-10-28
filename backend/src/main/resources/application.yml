@@ -9,7 +9,7 @@ spring:
     default-property-inclusion: always
 
 server:
-  port: 8080
+  port: 7676
   error:
     include-stacktrace: never
     include-message: never
@@ -35,8 +35,21 @@ logging:
   level:
     root: INFO
     de.chesscoach: INFO
+    # Zugriffsprotokoll: INFO für ändernde Anfragen und Fehler, DEBUG zusätzlich für jede lesende Abfrage.
+    de.chesscoach.access: INFO
+  # Verzeichnis der rollierenden Logdateien (siehe logback-spring.xml); per LOGGING_FILE_PATH überschreibbar.
+  file:
+    path: logs
+  pattern:
+    # Request-ID und Partie-ID in jeder Logzeile, damit sich ein Fehler im Browser im Log wiederfinden lässt.
+    correlation: "[%X{requestId:-} %X{gameId:-}] "
 
 chesscoach:
+  logging:
+    max-file-size: 10MB
+    max-history: 30
+    access-max-history: 14
+    total-size-cap: 1GB
   engine:
     type: CALVIN
     calvin:
@@ -60,6 +73,9 @@ chesscoach:
     max-line-plies: 12
     max-queued-analyses: 32
     evaluation-nodes: 40000
+    # Knappe Entscheidungen vor einer Empfehlung genauer nachprüfen (flache Suchen übersehen sonst Widerlegungen).
+    verify-margin: 100
+    verify-factor: 4.0
   difficulty:
     random-seed: 0
     levels:
@@ -87,6 +103,7 @@ chesscoach:
       - http://localhost:5173
       - http://127.0.0.1:5173
       - http://localhost:8080
+      - https://schach.jentsch.io
     max-games: 500
     game-idle-timeout: 6h
     rate-limit-per-minute: 120

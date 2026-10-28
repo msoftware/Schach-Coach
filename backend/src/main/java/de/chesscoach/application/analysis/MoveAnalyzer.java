@@ -108,6 +108,49 @@ public class MoveAnalyzer {
         }
     }
 
+    /** Höchstzahl zusätzlicher Suchen bei der Nachprüfung einer knappen Entscheidung. */
+    private static final int MAX_VERIFICATIONS = 5;
+
+    /**
+     * Nachprüfung knapper Entscheidungen: Will der Coach einen anderen als den gespielten Zug empfehlen und ist der
+     * Abstand klein, werden beide mit größerem Budget erneut bewertet – so lange, bis der Zug, der am Ende vorn liegt,
+     * unter denselben Bedingungen geprüft ist wie der gespielte Zug. Flache Suchen übersehen sonst gelegentlich eine
+     * Widerlegung und empfehlen einen schwächeren Zug; ein nur flach bewerteter Zug darf den Vergleich nicht gewinnen.
+     *
+     * @return zusätzlich verbrauchte Knoten
+     */
+    private long verifyCloseCall(ChessEngine engine, ChessPositionAdapter root, List<MoveInfo> legal, MoveInfo played,
+                                 Map<String, Evaluated> deep, double candidateFactor, CancellationToken token,
+                                 BiConsumer<String, Integer> progress) {
+        if (properties.verifyFactor() <= 1.0 || deep.get(played.uci()).terminal()) {
+            return 0;
+        }
+        AnalysisLimits verifyLimits = AnalysisLimits.nodes(scaled(properties.candidateNodes(), candidateFactor * properties.verifyFactor()));
+        Set<String> verified = new LinkedHashSet<>();
+        long nodes = 0;
+        while (verified.size() < MAX_VERIFICATIONS) {
+            Evaluated playedEval = deep.get(played.uci());
+            Evaluated best = deep.values().stream().max(Comparator.comparingInt(e -> e.score().comparable())).orElseThrow();
+            if (best.move().uci().equals(played.uci()) || playedEval.score().comparable() >= best.score().comparable()
+                    || best.terminal()
+                    || best.score().centipawnsClamped(3000) - playedEval.score().centipawnsClamped(3000) > properties.verifyMargin()) {
+                break;
+            }
+            String next = !verified.contains(played.uci()) ? played.uci() : best.move().uci();
+            if (verified.contains(next)) {
+                break; // Beide unter gleichen Bedingungen geprüft: Die Empfehlung steht.
+            }
+            token.throwIfCancelled();
+            progress.accept("Knappe Entscheidung wird genauer geprüft (" + (verified.size() + 1) + ")", 85 + verified.size());
+            MoveInfo move = legal.stream().filter(m -> m.uci().equals(next)).findFirst().orElseThrow();
+            Evaluated e = evaluateChild(engine, root, move, verifyLimits);
+            nodes += e.nodes();
+            deep.put(next, e);
+            verified.add(next);
+        }
+        return nodes;
+    }
+
     public MoveAnalysis analyze(ChessEngine engine, Request request, CancellationToken token, BiConsumer<String, Integer> progress) {
         long started = System.currentTimeMillis();
         ChessPositionAdapter root = rules.fromFen(request.fenBefore());
@@ -171,6 +214,7 @@ public class MoveAnalyzer {
             index++;
         }
         token.throwIfCancelled();
+        totalNodes += verifyCloseCall(engine, root, legal, played, deep, candidateFactor, token, progress);
         progress.accept("Coaching-Regeln werden ausgewertet", 88);
 
         Evaluated playedEval = deep.get(played.uci());

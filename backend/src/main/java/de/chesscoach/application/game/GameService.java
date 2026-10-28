@@ -15,6 +15,9 @@ import de.chesscoach.domain.game.MoveRecord;
 import de.chesscoach.domain.position.Color;
 import de.chesscoach.engine.EngineRegistry;
 import de.chesscoach.infrastructure.config.ApiProperties;
+import de.chesscoach.infrastructure.logging.AccessLogFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -30,6 +33,8 @@ import java.util.function.Function;
  */
 @Service
 public class GameService {
+
+    private static final Logger log = LoggerFactory.getLogger(GameService.class);
 
     private final GameStore store;
     private final ChessRulesService rules;
@@ -94,6 +99,9 @@ public class GameService {
             }
             session.replacePosition(current);
             store.put(session);
+            log.info("Partie {} gestartet: Benutzer spielt {}, Stufe {}, Analyse {}{} ({} aktiv)",
+                    AccessLogFilter.shortGameId(session.gameId()), player, difficulty, profile,
+                    records.isEmpty() ? "" : ", aus dem Browser wiederhergestellt mit " + records.size() + " Halbzügen", store.size());
             return session.snapshot(true);
         } finally {
             session.lock().unlock();
@@ -209,6 +217,7 @@ public class GameService {
                 throw new GameException(ErrorCode.GAME_FINISHED, "Die Partie ist bereits beendet.", s.snapshot(true));
             }
             s.resign();
+            log.info("Partie aufgegeben nach {} Halbzügen", s.moves().size());
             return s.snapshot(true);
         });
     }

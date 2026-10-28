@@ -189,7 +189,9 @@ public class ExplanationBuilder {
         if (endgameTechnique) {
             return ExplanationType.ENDGAME_TECHNIQUE;
         }
-        return cls == MoveClassification.GOOD ? ExplanationType.GOOD_MOVE : ExplanationType.BEST_MOVE;
+        // „Bester Zug“ nur, wenn es keinen genaueren Zug gibt – sonst widerspräche der Typ der genannten Alternative.
+        boolean moreAccurateExists = cls == MoveClassification.EXCELLENT && in.best().isPresent();
+        return cls == MoveClassification.GOOD || moreAccurateExists ? ExplanationType.GOOD_MOVE : ExplanationType.BEST_MOVE;
     }
 
     private ExplanationSection goodOrBad(Input in, List<CoachingFinding> findings, ExplanationType type, Optional<CoachingFinding> main) {
@@ -249,7 +251,7 @@ public class ExplanationBuilder {
         }
         boolean immediateCapture = c.line().ply(0).isCapture() || c.opponentReply().map(LinePly::isCapture).orElse(false);
         if (c.hasEngineLine() && immediateCapture) {
-            String trade = GermanText.tradeWords(c.line(), c.user(), c.line().settledIndex(12));
+            String trade = GermanText.tradeWords(c.line(), c.user(), c.line().settledIndex(12), c.previousOpponentMove().orElse(null));
             if (!trade.isBlank()) {
                 st.add(new ExplanationStatement(trade, List.of(ENGINE)));
             }
@@ -284,15 +286,31 @@ public class ExplanationBuilder {
         return new ExplanationSection("opponentReply", "Wie kann der Gegner antworten?", st);
     }
 
+    /**
+     * Einleitung für den Zug, den der Computer vorzieht. Liegt der gespielte Zug innerhalb der Bestzug-Toleranz,
+     * ist die Alternative nur gleich gut – „besser“ wäre dann irreführend.
+     */
+    static String alternativeLead(MoveClassification cls) {
+        return switch (cls) {
+            case BEST -> "Gleich gut war";
+            case EXCELLENT -> "Etwas genauer war";
+            default -> "Besser war";
+        };
+    }
+
     private ExplanationSection betterMove(Input in) {
         List<ExplanationStatement> st = new ArrayList<>();
         PositionContext c = in.played();
+        boolean equal = in.classification().classification() == MoveClassification.BEST;
         if (in.best().isPresent()) {
             PositionContext b = in.best().get();
-            st.add(new ExplanationStatement("Besser war: " + GermanText.moveWithNotation(b.line().ply(0)) + ".", List.of(ENGINE)));
+            st.add(new ExplanationStatement(alternativeLead(in.classification().classification()) + ": "
+                    + GermanText.moveWithNotation(b.line().ply(0))
+                    + (equal ? " – der Unterschied ist so klein, dass er keine Rolle spielt." : "."), List.of(ENGINE)));
             if (b.scoreAfter().isPresent() && c.scoreAfter().isPresent()) {
                 st.add(new ExplanationStatement("Damit gilt: " + GermanText.evaluationWords(b.scoreAfter().get())
-                        + ". Nach deinem Zug dagegen: " + GermanText.evaluationWords(c.scoreAfter().get()) + ".", List.of(ENGINE)));
+                        + (equal ? ". Nach deinem Zug: " : ". Nach deinem Zug dagegen: ")
+                        + GermanText.evaluationWords(c.scoreAfter().get()) + ".", List.of(ENGINE)));
             }
             if (b.line().size() > 1) {
                 st.add(new ExplanationStatement("So geht es danach weiter: " + GermanText.lineWords(b.line(), 1, 3, c.user())
@@ -304,11 +322,19 @@ public class ExplanationBuilder {
         if (!in.alternatives().isEmpty()) {
             st.add(new ExplanationStatement("Ebenfalls gut gewesen wären: " + String.join("; ", in.alternatives()) + ".", List.of(ENGINE)));
         }
-        return new ExplanationSection("betterMove", "Was wäre besser gewesen?", st);
+        return new ExplanationSection("betterMove", equal ? "Gab es gleich gute Züge?" : "Was wäre besser gewesen?", st);
     }
 
     private ExplanationSection whyBetter(Input in, List<CoachingFinding> playedFindings) {
         List<ExplanationStatement> st = new ArrayList<>();
+        if (in.best().isPresent() && in.classification().classification() == MoveClassification.BEST) {
+            // Gleich guter Alternativzug: nicht erklären, warum er „besser“ ist, sondern was am eigenen Zug gut ist.
+            playedFindings.stream().filter(f -> f.isPositive() && !f.overriddenByTactics()).limit(3)
+                    .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));
+            st.add(new ExplanationStatement("Laut Computer ist " + GermanText.moveWithNotation(in.best().get().line().ply(0))
+                    + " genauso stark – beide Züge sind eine gute Wahl.", List.of(ENGINE)));
+            return new ExplanationSection("whyBetter", "Warum ist dein Zug gut?", st);
+        }
         if (in.best().isEmpty()) {
             playedFindings.stream().filter(f -> f.isPositive() && !f.overriddenByTactics()).limit(3)
                     .forEach(f -> st.add(new ExplanationStatement(f.explanation(), List.of(f.ruleId()))));

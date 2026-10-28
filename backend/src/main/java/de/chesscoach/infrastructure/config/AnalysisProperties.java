@@ -18,6 +18,9 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param maxQueuedAnalyses    maximale Anzahl wartender Analysen
  * @param stalenessCheckMillis Intervall, in dem laufende Analysen auf Veraltung geprüft werden
  * @param evaluationNodes      Knoten für die Stellungsbewertung der Bewertungsleiste (unabhängig vom Profil)
+ * @param verifyMargin         knappe Entscheidung: Abstand (Centipawns) zwischen gespieltem und vermeintlich besserem Zug,
+ *                             bis zu dem beide vor einer Empfehlung genauer nachgeprüft werden
+ * @param verifyFactor         Multiplikator der Kandidatenknoten für diese Nachprüfung (1 = keine Nachprüfung)
  */
 @ConfigurationProperties("chesscoach.analysis")
 public record AnalysisProperties(@DefaultValue("150000") long rootNodes,
@@ -30,5 +33,7 @@ public record AnalysisProperties(@DefaultValue("150000") long rootNodes,
                                  @DefaultValue("12") int maxLinePlies,
                                  @DefaultValue("32") int maxQueuedAnalyses,
                                  @DefaultValue("200") long stalenessCheckMillis,
-                                 @DefaultValue("40000") long evaluationNodes) {
+                                 @DefaultValue("40000") long evaluationNodes,
+                                 @DefaultValue("100") int verifyMargin,
+                                 @DefaultValue("4.0") double verifyFactor) {
 }

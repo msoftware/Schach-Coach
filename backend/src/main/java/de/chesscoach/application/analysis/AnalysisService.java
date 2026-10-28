@@ -6,11 +6,14 @@ import de.chesscoach.engine.EngineRegistry;
 import de.chesscoach.engine.EngineTimeoutException;
 import de.chesscoach.engine.EngineUnavailableException;
 import de.chesscoach.infrastructure.config.AnalysisProperties;
+import de.chesscoach.infrastructure.logging.AccessLogFilter;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.RejectedExecutionException;
@@ -44,9 +47,24 @@ public class AnalysisService {
 
     /** Reiht eine Analyse ein. Bei voller Warteschlange wird der Auftrag als fehlgeschlagen markiert. */
     public void submit(AnalysisEntry entry) {
+        // Log-Kontext (Request-ID, Partie) der auslösenden Anfrage in den Analyse-Thread übernehmen.
+        Map<String, String> context = MDC.getCopyOfContextMap();
         try {
-            executor.execute(() -> run(entry));
+            executor.execute(() -> {
+                if (context != null) {
+                    MDC.setContextMap(context);
+                }
+                MDC.put(AccessLogFilter.GAME_ID, AccessLogFilter.shortGameId(entry.gameId()));
+                try {
+                    run(entry);
+                } finally {
+                    MDC.clear();
+                }
+            });
+            log.debug("Analyse von Halbzug {} eingereiht ({} wartend)", entry.move().ply(), executor.getQueue().size());
         } catch (RejectedExecutionException e) {
+            log.warn("Analyse-Warteschlange voll ({} wartend) – Analyse von Halbzug {} abgelehnt",
+                    executor.getQueue().size(), entry.move().ply());
             entry.fail("Es laufen zu viele Analysen gleichzeitig. Bitte fordere die Analyse später erneut an.");
         }
     }
@@ -55,6 +73,7 @@ public class AnalysisService {
         if (entry.token().isCancelled()) {
             return;
         }
+        long started = System.currentTimeMillis();
         synchronized (runningLock) {
             running = entry;
         }
@@ -67,11 +86,16 @@ public class AnalysisService {
                 return;
             }
             entry.complete(analysis);
+            log.info("Analyse von Halbzug {} ({}) fertig in {} ms: {}, Tiefe {}, {} Knoten, Profil {}, Stufe {}",
+                    entry.move().ply(), entry.move().san(), System.currentTimeMillis() - started, analysis.classification(),
+                    analysis.rootDepth(), analysis.engineNodes(), entry.profile(), entry.depthLevel());
         } catch (CancellationException e) {
             log.debug("Analyse für Zug {} abgebrochen", entry.move().ply());
         } catch (EngineTimeoutException e) {
+            log.warn("Analyse von Halbzug {} wegen Zeitüberschreitung der Engine abgebrochen", entry.move().ply());
             entry.fail("Die Engine hat nicht rechtzeitig geantwortet. Die Analyse wurde abgebrochen.");
         } catch (EngineUnavailableException e) {
+            log.warn("Analyse von Halbzug {} nicht möglich: Engine nicht verfügbar", entry.move().ply());
             entry.fail("Die Schach-Engine ist nicht verfügbar. Eine Analyse ist derzeit nicht möglich.");
         } catch (EngineException e) {
             log.warn("Analyse von Halbzug {} wegen Engine-Fehler verworfen: {}", entry.move().ply(), e.getMessage());

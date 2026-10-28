@@ -91,6 +91,8 @@ tasks.test {
     }
     systemProperty("chesscoach.engine.calvin.jar-path", engineFile.asFile.absolutePath)
     systemProperty("chesscoach.docs.dir", rootProject.layout.projectDirectory.dir("../docs").asFile.absolutePath)
+    // Logdateien der Tests nicht ins Projektverzeichnis schreiben.
+    systemProperty("logging.file.path", layout.buildDirectory.dir("test-logs").get().asFile.absolutePath)
     jvmArgs("-Xshare:off")
     maxHeapSize = "1g"
     testLogging {

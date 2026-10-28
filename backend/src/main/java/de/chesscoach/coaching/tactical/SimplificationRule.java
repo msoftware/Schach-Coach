@@ -47,7 +47,10 @@ public class SimplificationRule extends AbstractRule implements TacticalRule {
         int before = c.before().materialBalance(c.user());
         int after = line.materialBalanceAfter(length, c.user());
         boolean intoEndgame = !c.before().isEndgame() && line.positionAfter(length).isEndgame();
-        int net = after - before;
+        // Schlägt der Zug zurück, zählt die gerade verlorene Figur mit – sonst gilt bloßes Zurückschlagen als Gewinn.
+        LinePly previous = c.previousOpponentMove().orElse(null);
+        de.chesscoach.domain.position.PieceKind justLost = GermanText.recapturedLoss(line, previous);
+        int net = after - before - (justLost == null ? 0 : justLost.value());
         List<String> userLost = new ArrayList<>();
         List<String> opponentLost = new ArrayList<>();
         for (int i = 0; i < length; i++) {
@@ -71,7 +74,7 @@ public class SimplificationRule extends AbstractRule implements TacticalRule {
             b.neutral();
         }
         b.explanation("Dein Zug startet einen Abtausch: " + GermanText.lineWords(line, 0, length, c.user()) + ". "
-                + GermanText.tradeWords(line, c.user(), length)
+                + GermanText.tradeWords(line, c.user(), length, previous)
                 + (intoEndgame ? " Danach sind nur noch wenige Figuren auf dem Brett (Endspiel) – jetzt wird der König zu einer "
                 + "wichtigen, aktiven Figur." : ""));
         findings.add(b.build());

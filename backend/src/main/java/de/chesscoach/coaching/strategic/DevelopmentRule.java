@@ -90,8 +90,7 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
                 findings.add(FindingBuilder.of(this).positive().heuristic().severity(Severity.LOW)
                         .title("Entwicklung vorbereitet")
                         .square(c.move().to())
-                        .explanation("Dein Bauernzug macht den Weg frei für deine noch unentwickelten Läufer "
-                                + "(sie erreichen jetzt " + bishopMobilityAfter + " statt " + bishopMobilityBefore + " Felder).")
+                        .explanation(bishopText(homeBishops(c.after(), user), bishopMobilityBefore, bishopMobilityAfter))
                         .build());
             }
         }
@@ -108,6 +107,23 @@ public class DevelopmentRule extends AbstractRule implements StrategicRule {
 
     private static boolean isCastlingRookMove(PositionContext c) {
         return c.movedPiece().kind() == PieceKind.ROOK && c.before().canCastle(c.user()) && !c.after().canCastle(c.user());
+    }
+
+    /** Läufer, die noch auf ihrem Ausgangsfeld stehen. */
+    private static List<Integer> homeBishops(Position position, Color color) {
+        return StrategicFeatures.undevelopedMinors(position, color).stream()
+                .filter(sq -> position.pieceAt(sq).kind() == PieceKind.BISHOP)
+                .toList();
+    }
+
+    /** Ein Läufer im Singular mit Feld, mehrere im Plural – damit der Text zur Stellung passt. */
+    static String bishopText(List<Integer> bishops, int before, int after) {
+        if (bishops.size() == 1) {
+            return "Dein Bauernzug macht den Weg frei für deinen Läufer auf " + Squares.name(bishops.getFirst())
+                    + " (er erreicht jetzt " + after + " statt " + before + " Felder).";
+        }
+        return "Dein Bauernzug macht den Weg frei für deine noch unentwickelten Läufer "
+                + "(sie erreichen jetzt zusammen " + after + " statt " + before + " Felder).";
     }
 
     private static int homeBishopMobility(Position position, Color color) {

@@ -9,6 +9,9 @@ services:
       SERVER_FORWARD_HEADERS_STRATEGY: native
     expose:
       - "8080"
+    # Rollierende Logdateien (chess-coach.log, -error.log, -access.log) überleben Neustarts und Updates.
+    volumes:
+      - backend-logs:/app/logs
     mem_limit: 2g
 
   frontend:
@@ -19,3 +22,6 @@ services:
       - backend
     ports:
       - "8081:80"
+
+volumes:
+  backend-logs:

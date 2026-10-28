@@ -110,9 +110,13 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
             }
         }
         if (worst >= 0 && worstMobility <= 2 && !p.isOpening()) {
+            boolean feminine = p.pieceAt(worst).kind().feminine();
             plans.add(plan(label, "Passive Figur verbessern",
-                    (you ? "Dein " : "Der gegnerische ") + GermanText.pieceOn(p, worst) + " hat nur " + worstMobility
-                            + " Felder, die sie erreichen kann. Suche ihr ein besseres Feld, von dem aus sie mehr bewirkt.",
+                    (you ? (feminine ? "Deine " : "Dein ") : (feminine ? "Die gegnerische " : "Der gegnerische ")) + GermanText.pieceOn(p, worst)
+                            + " hat nur " + worstMobility + (worstMobility == 1 ? " Feld" : " Felder") + ", " + (worstMobility == 1 ? "das " : "die ")
+                            + (feminine ? "sie" : "er") + " erreichen kann. " + (you ? "Suche " : "Der Gegner wird ")
+                            + (feminine ? "ihr" : "ihm") + (you ? " ein besseres Feld, von dem aus " : " ein besseres Feld suchen, von dem aus ")
+                            + (feminine ? "sie" : "er") + " mehr bewirkt.",
                     List.of(worst), "geringe Mobilität " + GermanText.pieceOn(p, worst)));
         }
         Set<Integer> passed = ours.passed();
@@ -146,11 +150,13 @@ public class LongTermPlanRule extends AbstractRule implements StrategicRule {
                         List.of(king), "Endspiel, König auf " + Squares.name(king)));
             }
         }
-        int balance = p.materialBalance(side);
+        // Material am ruhigen Punkt der Engine-Variante: Mitten in einem Abtausch (die gegnerische Dame ist gerade
+        // geschlagen, das Zurückschlagen folgt) wäre die Bilanz der Stellung direkt nach dem Zug irreführend.
+        int balance = c.hasEngineLine() ? c.line().settledMaterialBalance(side, MATERIAL_HORIZON) : p.materialBalance(side);
         if (balance >= 2 && !p.isEndgame()) {
             plans.add(plan(label, "Vorteilhaften Abtausch anstreben",
-                    (you ? "Du hast" : "Der Gegner hat") + " " + GermanText.balance(balance)
-                            + " mehr an Material. Tausche jetzt Figuren (nicht Bauern): Je weniger Figuren auf dem Brett sind, desto leichter "
+                    (you ? "Du hast" : "Der Gegner hat") + " mehr Material – " + GermanText.material(balance)
+                            + ". Tausche jetzt Figuren (nicht Bauern): Je weniger Figuren auf dem Brett sind, desto leichter "
                             + "lässt sich ein Materialvorteil in einen Sieg verwandeln.",
                     List.of(), "Materialvorteil " + GermanText.balance(balance)));
         }

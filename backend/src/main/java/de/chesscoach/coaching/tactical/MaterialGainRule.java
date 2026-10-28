@@ -4,6 +4,7 @@ import de.chesscoach.coaching.AbstractRule;
 import de.chesscoach.coaching.EngineLine;
 import de.chesscoach.coaching.FindingBuilder;
 import de.chesscoach.coaching.GermanText;
+import de.chesscoach.coaching.LinePly;
 import de.chesscoach.coaching.PositionContext;
 import de.chesscoach.coaching.TacticalRule;
 import de.chesscoach.domain.coaching.CoachingFinding;
@@ -34,20 +35,36 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
     public List<CoachingFinding> evaluate(PositionContext c) {
         List<CoachingFinding> findings = new ArrayList<>();
         int before = c.before().materialBalance(c.user());
+        // Hat der Gegner gerade geschlagen, ist Zurückschlagen kein Gewinn: Maßstab ist die Bilanz vor seinem Schlagzug.
+        LinePly opponentCapture = c.previousOpponentMove().filter(LinePly::isCapture).orElse(null);
+        int justLost = opponentCapture == null ? 0 : opponentCapture.captured().kind().value();
         EngineLine line = c.line();
         int gain = 0;
         if (c.hasEngineLine()) {
             int settled = line.settledMaterialBalance(c.user(), MATERIAL_HORIZON);
-            gain = settled - before;
+            gain = settled - before - justLost;
             boolean scoreSupports = c.scoreAfter().isEmpty() || c.scoreBefore().isEmpty()
                     || c.scoreAfter().get().centipawnsClamped(3000) >= c.scoreBefore().get().centipawnsClamped(3000) - 100;
-            if (gain >= 1 && scoreSupports) {
+            boolean netGain = gain >= 1 && scoreSupports;
+            boolean recapture = justLost > 0 && c.capturedPiece() != null && opponentCapture.move().to() == c.move().to();
+            if (!netGain && recapture && scoreSupports) {
+                // Maßgeblich ist der Schlagzug selbst, nicht das (je nach Suche schwankende) Ende der Engine-Variante.
+                int taken = c.capturedPiece().kind().value();
+                findings.add(FindingBuilder.of(this)
+                        .positive().verified()
+                        .severity(Severity.LOW)
+                        .title("Zurückgeschlagen")
+                        .explanation(recaptureText(opponentCapture, c.capturedPiece().kind(), Integer.compare(taken, justLost)))
+                        .square(c.move().to())
+                        .build());
+            }
+            if (netGain) {
                 int end = line.settledIndex(MATERIAL_HORIZON);
                 findings.add(FindingBuilder.of(this)
                         .positive().verified()
                         .severity(gain >= 3 ? Severity.HIGH : Severity.MEDIUM)
                         .explanation("Gut gesehen: Mit diesem Zug gewinnst du " + GermanText.material(gain) + ". "
-                                + GermanText.tradeWords(line, c.user(), Math.max(end, 1))
+                                + GermanText.tradeWords(line, c.user(), Math.max(end, 1), opponentCapture)
                                 + " So rechnet der Computer weiter: " + GermanText.lineWords(line, 0, Math.min(Math.max(end, 1), 4), c.user())
                                 + " (" + line.numbered(0, Math.max(end, 1)) + ").")
                         .square(c.move().to())
@@ -70,7 +87,7 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
         if (c.isPlayedMove() && c.differsFromBest() && c.bestLine().isPresent() && c.bestLine().get().size() > 1) {
             EngineLine best = c.bestLine().get();
             int bestSettled = best.settledMaterialBalance(c.user(), MATERIAL_HORIZON);
-            int bestGain = bestSettled - before;
+            int bestGain = bestSettled - before - justLost;
             if (bestGain >= 2 && bestGain >= gain + 2) {
                 int end = best.settledIndex(MATERIAL_HORIZON);
                 findings.add(FindingBuilder.of(this)
@@ -86,5 +103,25 @@ public class MaterialGainRule extends AbstractRule implements TacticalRule {
             }
         }
         return findings;
+    }
+
+    /** Anfängergerechte Erklärung für das Zurückschlagen nach einem gegnerischen Schlagzug. */
+    /**
+     * @param comparison Vergleich des genommenen mit dem zuvor verlorenen Material (&lt; 0 weniger, 0 gleich, &gt; 0 mehr);
+     *                   einen Nettogewinn bestätigt die Engine in diesem Fall nicht
+     */
+    static String recaptureText(LinePly opponentCapture, de.chesscoach.domain.position.PieceKind taken, int comparison) {
+        String outcome;
+        if (comparison == 0) {
+            outcome = "Damit holst du dir das Material zurück – gewonnen hast du dadurch aber nichts.";
+        } else if (comparison > 0) {
+            outcome = "Das ist sogar mehr, als du verloren hast. Laut Computer bleibt dir trotzdem kein Gewinn: "
+                    + "Der Gegner bekommt danach Material oder einen anderen Vorteil zurück.";
+        } else {
+            outcome = "Damit holst du dir einen Teil des Materials zurück.";
+        }
+        return "Du schlägst zurück: Der Gegner hat gerade " + GermanText.pieces(List.of(opponentCapture.captured().kind()))
+                + " von dir geschlagen, jetzt nimmst du " + GermanText.pieces(List.of(taken)) + ". " + outcome
+                + " Wenn der Gegner schlägt, prüfe immer zuerst, ob du zurückschlagen kannst.";
     }
 }

@@ -75,7 +75,8 @@ public class CenterControlRule extends AbstractRule implements StrategicRule {
             findings.add(FindingBuilder.of(this).positive().heuristic().severity(delta >= 3 ? Severity.MEDIUM : Severity.LOW)
                     .squares(gained.isEmpty() ? List.of(c.move().to()) : gained)
                     .explanation((occupiesCenter ? (c.movedPiece().kind().feminine() ? "Deine " : "Dein ") + moved + " steht jetzt in der Brettmitte auf " + Squares.name(c.move().to()) + ". " : "")
-                            + (gained.isEmpty() ? "" : "Zusätzlich kannst du jetzt " + GermanText.squares(gained) + " erreichen. ")
+                            + (gained.isEmpty() ? "" : (occupiesCenter ? "Zusätzlich kannst du jetzt " + GermanText.squares(gained) + " erreichen. "
+                                    : "Deine Figuren erreichen jetzt " + GermanText.squares(gained) + ". "))
                             + "Die Brettmitte (d4, e4, d5, e5) ist wichtig, weil Figuren von dort aus viele Felder erreichen.")
                     .build());
         } else if (delta <= -2) {

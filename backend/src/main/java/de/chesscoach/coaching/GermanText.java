@@ -192,8 +192,21 @@ public final class GermanText {
      * bekommst dafür nur einen Bauern." Leer, wenn nichts geschlagen wird.
      */
     public static String tradeWords(EngineLine line, de.chesscoach.domain.position.Color user, int plies) {
+        return tradeWords(line, user, plies, null);
+    }
+
+    /**
+     * Wie {@link #tradeWords(EngineLine, de.chesscoach.domain.position.Color, int)}; schlägt der erste Zug auf dem Feld
+     * zurück, auf dem der Gegner gerade geschlagen hat, zählt die dort verlorene Figur mit. Sonst sähe ein bloßes
+     * Zurückschlagen wie ein Gewinn aus („du gibst die Dame und bekommst Dame und Läufer“).
+     */
+    public static String tradeWords(EngineLine line, de.chesscoach.domain.position.Color user, int plies, LinePly previousOpponentMove) {
         List<de.chesscoach.domain.position.PieceKind> lost = new java.util.ArrayList<>();
         List<de.chesscoach.domain.position.PieceKind> won = new java.util.ArrayList<>();
+        de.chesscoach.domain.position.PieceKind justLost = recapturedLoss(line, previousOpponentMove);
+        if (justLost != null) {
+            lost.add(justLost);
+        }
         for (int i = 0; i < Math.min(plies, line.size()); i++) {
             LinePly ply = line.ply(i);
             if (ply.captured() == null) {
@@ -204,6 +217,26 @@ public final class GermanText {
         if (lost.isEmpty() && won.isEmpty()) {
             return "";
         }
+        String prefix = "";
+        if (justLost != null) {
+            // Akkusativ ohne Artikel, z. B. "Bauern", "Turm", "Dame".
+            String noun = ARTICLES.get(justLost)[0].replaceFirst("^(einen|eine|die|den) ", "");
+            prefix = "Rechnet man " + (justLost.feminine() ? "deine gerade geschlagene " : "deinen gerade geschlagenen ") + noun + " mit: ";
+        }
+        return prefix + tradeSentence(lost, won);
+    }
+
+    /** Figur, die der Gegner gerade auf dem Feld geschlagen hat, auf dem der erste Zug der Variante zurückschlägt. */
+    public static de.chesscoach.domain.position.PieceKind recapturedLoss(EngineLine line, LinePly previousOpponentMove) {
+        if (previousOpponentMove == null || !previousOpponentMove.isCapture() || line.size() == 0
+                || !line.ply(0).isCapture() || line.ply(0).move().to() != previousOpponentMove.move().to()) {
+            return null;
+        }
+        return previousOpponentMove.captured().kind();
+    }
+
+    private static String tradeSentence(List<de.chesscoach.domain.position.PieceKind> lost,
+                                        List<de.chesscoach.domain.position.PieceKind> won) {
         int lostValue = lost.stream().mapToInt(de.chesscoach.domain.position.PieceKind::value).sum();
         int wonValue = won.stream().mapToInt(de.chesscoach.domain.position.PieceKind::value).sum();
         if (won.isEmpty()) {
